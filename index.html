@@ -1,1909 +1,885 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kids Fun Theme Park Slot Game</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <!-- Chart.js for the infographic's bar chart -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        html, body {
-            height: 100%; /* Ensure html and body take full height for proper flex container sizing */
-            margin: 0;
-            padding: 0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GestureLens · AI Face Filter & Hand Gesture Camera</title>
+  <!-- MediaPipe Hand Landmarker & Face Landmarker (via CDN) -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8"></script>
+  <style>
+    /* ---------- GLOBAL RESET & TYPOGRAPHY ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
-        /* Base styles for the body to center the game */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #fce4ec; /* Light pink background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden; /* Prevent body scroll */
-            box-sizing: border-box;
-        }
+    body {
+      background: #0f0f12;
+      background: radial-gradient(circle at 20% 30%, #1a1a24, #0b0b0f 90%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
 
-        /* Main game container styling */
-        #game-container {
-            background-color: #ffecb3; /* Light orange background for the game area */
-            background-image: none; /* No background image for now */
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-size: cover;
-            border-radius: 20px; /* Rounded corners */
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Soft shadow */
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            width: 100%;
-            height: 100%; /* Take full height of parent (body) */
-            max-width: 900px; /* Max width for larger screens */
-            max-height: 90vh; /* Max height to fit viewport */
-            box-sizing: border-box;
-            padding: 10px; /* Added padding to game container */
-        }
+    /* ---------- MAIN CONTAINER (GLASSMORPHISM) ---------- */
+    .app-container {
+      max-width: 1200px;
+      width: 100%;
+      background: rgba(22, 22, 30, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(150, 130, 255, 0.18);
+      border-radius: 48px;
+      padding: 24px;
+      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(170, 140, 255, 0.08);
+    }
 
-        /* Container for the Phaser game canvas */
-        #phaser-game-container {
-            flex-grow: 1; /* Allow to take available space */
-            flex-shrink: 1;
-            width: 100%;
-            height: 100%; /* Ensure it takes full height */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            /* Temporary background for debugging visibility */
-            /* background-color: rgba(255, 0, 0, 0.1); */
-        }
+    /* ---------- HEADER / STATUS BAR ---------- */
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 0 6px;
+    }
 
-        /* Styling for the Phaser canvas itself */
-        canvas {
-            display: block;
-            width: 100% !important; /* Force canvas to fill its parent */
-            height: 100% !important; /* Force canvas to fill its parent */
-            aspect-ratio: auto; /* Allow canvas to adapt to container aspect ratio */
-            border-radius: 15px; /* Rounded corners for the canvas */
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain; /* Ensure the game content fits within the bounds */
-        }
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        /* Message box styling (remains HTML as it overlays everything) */
-        .message-box {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            text-align: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #d84315;
-            z-index: 1000;
-            display: none; /* Hidden by default */
-            border: 5px solid #ffcc80;
-            animation: bounceIn 0.6s ease-out;
-            max-width: 80%;
-            box-sizing: border-box;
-        }
-        .message-box button {
-            background-color: #81c784;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            border: none;
-            cursor: pointer;
-            margin-top: 15px;
-            font-size: 1em;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            transition: background-color 0.2s;
-        }
-        .message-box button:hover {
-            background-color: #4caf50;
-        }
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 6px 14px rgba(139, 92, 246, 0.4);
+    }
 
-        /* Keyframe animation for message box */
-        @keyframes bounceIn {
-            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
-            50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
-            70% { transform: translate(-50%, -50%) scale(0.9); }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-        }
+    .logo-text {
+      font-weight: 600;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      color: #f0eef8;
+    }
 
-        /* Hamburger menu styling */
-        #hamburger-menu {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 100;
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            align-items: center;
-            padding: 5px;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: background-color 0.2s;
-        }
-        #hamburger-menu:hover {
-            background-color: rgba(255, 255, 255, 1);
-        }
-        .hamburger-line {
-            width: 80%;
-            height: 3px;
-            background-color: #d84315;
-            border-radius: 2px;
-        }
+    .logo-text span {
+      background: linear-gradient(135deg, #b69eff, #7aa7ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
 
-        /* Info button styling */
-        #info-button {
-            position: absolute;
-            top: 20px;
-            left: 70px; /* Positioned right next to hamburger */
-            z-index: 100;
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #d84315;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: background-color 0.2s;
-        }
-        #info-button:hover {
-            background-color: rgba(255, 255, 255, 1);
-        }
+    .gesture-indicator {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px 20px;
+      border-radius: 40px;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.9rem;
+      backdrop-filter: blur(8px);
+      color: #cfc9e6;
+    }
 
-        /* Paytable Modal overlay */
-        .paytable-modal-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Dark semi-transparent background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            display: none; /* Hidden by default */
-        }
-        /* Paytable Modal content */
-        .paytable-modal-content {
-            background-color: #fff;
-            border-radius: 20px;
-            padding: 25px;
-            max-width: 85%;
-            max-height: 85%;
-            overflow-y: auto; /* Enable scrolling for long content */
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
-            position: relative;
-            animation: bounceIn 0.6s ease-out;
-            color: #333;
-        }
-        .paytable-modal-content h2 {
-            font-size: 2.2em;
-            color: #e65100;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .paytable-modal-content h3 {
-            font-size: 1.5em;
-            color: #d84315;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #ffcc80;
-            padding-bottom: 5px;
-        }
-        .paytable-modal-content p, .paytable-modal-content ul {
-            font-size: 1.1em;
-            line-height: 1.6;
-            margin-bottom: 10px;
-        }
-        .paytable-modal-content ul {
-            list-style-type: disc;
-            margin-left: 20px;
-        }
-        .paytable-modal-content ul li {
-            margin-bottom: 5px;
-        }
-        .paytable-symbol-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .paytable-symbol-row .emoji {
-            font-size: 2em;
-            margin-right: 15px;
-            flex-shrink: 0;
-        }
-        .paytable-symbol-row .description {
-            font-weight: bold;
-            color: #4CAF50;
-        }
-        /* Close button for paytable modal */
-        .close-paytable-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #d84315;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            font-size: 1.2em;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: background-color 0.2s;
-        }
-        .close-paytable-btn:hover {
-            background-color: #e65100;
-        }
+    .gesture-indicator .value {
+      font-weight: 700;
+      color: #c4b5fd;
+      background: rgba(139, 92, 246, 0.2);
+      padding: 4px 12px;
+      border-radius: 30px;
+    }
 
-        /* Paytable table styling */
-        .paytable-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 0.9em;
-        }
-        .paytable-table th, .paytable-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        .paytable-table th {
-            background-color: #f2f2f2;
-            color: #d84315;
-            font-weight: bold;
-        }
-        .paytable-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .paytable-table td .emoji {
-            font-size: 1.5em;
-        }
+    .tracking-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #a09bb5;
+    }
 
-        /* Paylines visuals container */
-        .paylines-visuals-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-        /* Individual payline example item */
-        .payline-example-item {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #f0f0f0;
-            border-radius: 8px;
-            padding: 10px;
-            width: calc(33% - 10px); /* 3 items per row on larger screens */
-            box-sizing: border-box;
-            font-size: 0.9em;
-            line-height: 1.2;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        .payline-example-item pre {
-            margin: 5px 0;
-            padding: 0;
-            text-align: left;
-            white-space: pre; /* Preserve whitespace for ASCII art */
-        }
-        .payline-example-item p {
-            font-weight: bold;
-            font-size: 1em;
-            margin-bottom: 5px;
-        }
-        /* Responsive adjustments for payline examples */
-        @media (max-width: 768px) {
-            .payline-example-item {
-                width: calc(50% - 10px); /* 2 items per row on medium screens */
-            }
-        }
-        @media (max-width: 480px) {
-            .payline-example-item {
-                width: 100%; /* 1 item per row on small screens */
-            }
-        }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 10px #22c55e;
+    }
 
-        /* New styles for modal tabs */
-        .modal-tabs {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-            gap: 10px;
-        }
+    .dot.inactive {
+      background: #4b5563;
+      box-shadow: none;
+    }
 
-        .modal-tab-button {
-            background-color: #ffe0b2; /* Light orange for inactive tab */
-            color: #e65100;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
+    /* ---------- CAMERA PREVIEW AREA ---------- */
+    .camera-stage {
+      position: relative;
+      border-radius: 32px;
+      overflow: hidden;
+      background: #050507;
+      aspect-ratio: 4 / 3;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 40px rgba(0, 0, 0, 0.8);
+      transition: box-shadow 0.3s;
+    }
 
-        .modal-tab-button.active {
-            background-color: #ffcc80; /* Darker orange for active tab */
-            transform: translateY(-2px);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+    .camera-stage.active {
+      box-shadow: inset 0 0 0 2px rgba(139, 92, 246, 0.5), 0 20px 40px rgba(0, 0, 0, 0.8);
+    }
 
-        .modal-tab-button:hover:not(.active) {
-            background-color: #ffb74d;
-        }
+    #videoElement {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror front camera */
+      display: block;
+    }
 
-        .modal-tab-content {
-            display: none; /* Hide all tab content by default */
-            padding: 10px 0;
-        }
+    #outputCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror canvas to match video */
+      display: block;
+      pointer-events: none;
+    }
 
-        .modal-tab-content.active {
-            display: block; /* Show active tab content */
-        }
+    /* overlay message if camera off */
+    .camera-off-message {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 10, 15, 0.9);
+      color: #9ca3af;
+      font-size: 1.1rem;
+      gap: 16px;
+      z-index: 5;
+      text-align: center;
+      padding: 24px;
+      backdrop-filter: blur(4px);
+    }
 
-        /* Styles specific to the infographic content */
-        .chart-container {
-            position: relative;
-            margin: auto;
-            height: 40vh; /* Responsive height for chart */
-            width: 100%;
-            max-width: 600px; /* Max width for chart */
-            max-height: 400px; /* Max height for chart */
-        }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 350px;
-            }
-        }
-        .infographic-section { /* Added class for main content sections */
-            background-color: white;
-            border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
-            padding: 1.5rem; /* p-6 */
-            margin-bottom: 2rem; /* mb-8 */
-        }
-        .infographic-header-text { /* For main infographic header */
-            color: #8B5F4A; /* Warm Brown */
-        }
-        .infographic-text-color { /* For general text */
-            color: #333333; /* Dark Charcoal */
-        }
-        .infographic-highlight-bg { /* For calculated payout box */
-            background-color: #A3C1AD; /* Soft Green */
-        }
-        .infographic-input-focus { /* For input/select focus ring */
-            border-color: #C79A7E; /* Muted Orange */
-        }
-        .infographic-bg-slate-100 { /* For table headers */
-            background-color: #f1f5f9; /* Tailwind slate-100 */
-        }
-        .infographic-text-sm { /* For small text */
-            font-size: 0.875rem; /* text-sm */
-        }
-        .infographic-text-xl { /* For emoji size in table */
-            font-size: 1.25rem; /* text-xl */
-        }
-    </style>
+    /* ---------- CONTROL PANEL ---------- */
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 24px;
+      gap: 20px;
+    }
+
+    .camera-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e5e1f0;
+      padding: 12px 22px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+      letter-spacing: -0.01em;
+    }
+
+    .btn:hover {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 18px -6px #4f46e5;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      box-shadow: 0 12px 22px -6px #4f46e5;
+    }
+
+    .intensity-slider-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px 18px;
+      border-radius: 40px;
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+
+    .intensity-slider-container label {
+      font-size: 0.85rem;
+      color: #b7b1cc;
+      font-weight: 500;
+    }
+
+    input[type="range"] {
+      width: 140px;
+      height: 4px;
+      -webkit-appearance: none;
+      background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #8b5cf6;
+      border: 2px solid #a78bfa;
+    }
+
+    /* active filter name */
+    .filter-name-badge {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 30px;
+      padding: 6px 18px;
+      font-size: 0.85rem;
+      color: #c4b5fd;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+
+    /* ---------- FOOTNOTE / ERROR ---------- */
+    .error-message {
+      background: rgba(220, 38, 38, 0.15);
+      border: 1px solid rgba(220, 38, 38, 0.4);
+      color: #fca5a5;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      margin-top: 16px;
+      text-align: center;
+      display: none;
+    }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 700px) {
+      .app-container { padding: 16px; border-radius: 32px; }
+      .status-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .control-panel { flex-direction: column; align-items: stretch; }
+      .camera-controls { justify-content: center; }
+      .intensity-slider-container { justify-content: space-between; }
+      .btn { padding: 10px 16px; font-size: 0.85rem; }
+    }
+  </style>
 </head>
-<body class="bg-[#F9F5EE] text-[#333333]">
-    <div id="game-container" class="relative w-full h-full flex flex-col justify-center items-center">
-        <!-- Hamburger Menu Button -->
-        <div id="hamburger-menu">
-            <div class="hamburger-line"></div>
-            <div class="hamburger-line"></div>
-            <div class="hamburger-line"></div>
-        </div>
-
-        <!-- Info Button (now opens info tab in modal) -->
-        <div id="info-button">i</div>
-
-        <!-- Phaser Game Canvas Container -->
-        <div id="phaser-game-container" class="w-full max-w-4xl mx-auto flex-grow flex items-center justify-center">
-            <!-- Phaser Game Canvas will be appended here by Phaser -->
-        </div>
-
-        <!-- The game-ui div and its contents are now removed from HTML
-             and will be rendered directly by Phaser.js -->
-
-        <!-- Message Box for game notifications -->
-        <div id="message-box" class="message-box">
-            <p id="message-text"></p>
-            <button id="message-ok-button">OK</button>
-        </div>
-
-        <!-- Paytable/Info Modal Overlay (reused for both) -->
-        <div id="paytable-modal-overlay" class="paytable-modal-overlay">
-            <div class="paytable-modal-content">
-                <button id="close-paytable-btn" class="close-paytable-btn">X</button>
-
-                <div class="modal-tabs">
-                    <button id="paytable-tab-button" class="modal-tab-button active">Paytable</button>
-                    <button id="info-tab-button" class="modal-tab-button">Game Info</button>
-                </div>
-
-                <!-- Paytable Content Section -->
-                <div id="paytable-content" class="modal-tab-content active">
-                    <h2>Game Paytable & Rules</h2>
-
-                    <h3>Game Overview</h3>
-                    <p>Welcome to the Kids Fun Theme Park Slot Game! Match symbols from left to right on 5 reels and 3 rows to win across 10 exciting paylines. Look out for Wilds and Bonus symbols for extra fun!</p>
-
-                    <h3>Symbol Wins (Payouts per symbol match)</h3>
-                    <table class="paytable-table">
-                        <thead>
-                            <tr>
-                                <th>Symbol</th>
-                                <th>3 Symbols</th>
-                                <th>4 Symbols</th>
-                                <th>5 Symbols</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><span class="emoji">🎈</span> Balloons</td>
-                                <td>x0.625</td>
-                                <td>x1.25</td>
-                                <td>x2.5</td>
-                            </tr>
-                            <tr>
-                                <td><span class="emoji">🍦</span> Ice Cream</td>
-                                <td>x1.25</td>
-                                <td>x2.5</td>
-                                <td>x5</td>
-                            </tr>
-                            <tr>
-                                <td><span class="emoji">🎟️</span> Carnival Tickets</td>
-                                <td>x1.875</td>
-                                <td>x3.75</td>
-                                <td>x7.5</td>
-                            </tr>
-                            <tr>
-                                <td><span class="emoji">🎡</span> Ferris Wheel</td>
-                                <td>x2.5</td>
-                                <td>x5</td>
-                                <td>x10</td>
-                            </tr>
-                            <tr>
-                                <td><span class="emoji">🎢</span> Roller Coaster</td>
-                                <td>x3.125</td>
-                                <td>x6.25</td>
-                                <td>x12.5</td>
-                            </tr>
-                            <tr>
-                                <td><span class="emoji">🍬</span> Cotton Candy</td>
-                                <td>x3.75</td>
-                                <td>x7.5</td>
-                                <td>x15</td>
-                            </tr>
-                            <tr>
-                                <td><span class="emoji">W</span> Wild</td>
-                                <td>x5</td>
-                                <td>x10</td>
-                                <td>x20</td>
-                            </tr>
-                            <tr>
-                                <td><span class="emoji">B</span> Bonus</td>
-                                <td colspan="3">Triggers Free Spins! (Must land on a payline)</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <h3>Bonus Features</h3>
-                    <ul>
-                        <li><strong>Free Spins:</strong> Land 3 or more <span class="emoji">B</span> symbols on an active payline to trigger 10 exciting Free Spins!</li>
-                        <li><strong>Multipliers:</strong> All wins during Free Spins are multiplied by a random multiplier (x2 or x3), boosting your payouts significantly!</li>
-                        <li><strong>Wilds:</strong> The <span class="emoji">W</span> Wild symbol helps you get more wins by substituting for any regular symbol.</li>
-                    </ul>
-
-                    <h3>Paylines</h3>
-                    <p>Wins are awarded for 3 or more matching symbols on active paylines. Combinations must start from the leftmost reel and continue uninterrupted to the right along the payline. Only the highest win per payline is paid.</p>
-
-                    <h4>All 10 Payline Patterns:</h4>
-                    <div id="paylines-visuals-container" class="paylines-visuals-container">
-                        <!-- Payline patterns will be dynamically inserted here by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Game Info/Infographic Content Section (NEW) -->
-                <div id="info-content" class="modal-tab-content">
-                    <div class="container mx-auto p-4 md:p-8">
-                        <header class="text-center py-8">
-                            <h1 class="text-4xl md:text-5xl font-extrabold infographic-header-text mb-4">Unveiling the Math Behind the Fun</h1>
-                            <p class="text-lg infographic-text-color max-w-3xl mx-auto">A deep dive into the mathematical mechanics of the "Kids Fun Theme Park Slot Game", designed for enthusiasts and curious minds.</p>
-                        </header>
-
-                        <main class="space-y-12">
-                            
-                            <section id="game-fundamentals" class="infographic-section">
-                                <h2 class="text-2xl font-bold infographic-header-text mb-4">1. Game Fundamentals</h2>
-                                <p class="infographic-text-color mb-4">The "Kids Fun Theme Park Slot Game" is built on a standard slot machine framework with specific configurations that define its gameplay.</p>
-                                <ul class="list-disc list-inside infographic-text-color space-y-2">
-                                    <li><strong>Reels:</strong> 5 virtual reels, each displaying 3 symbols at a time.</li>
-                                    <li><strong>Paylines:</strong> 10 active paylines, with wins awarded strictly from left to right.</li>
-                                    <li><strong>Internal Reel Structure:</strong> Each reel internally contains 9 symbols to facilitate smooth, continuous spinning animations (3 visible + 6 buffer symbols).</li>
-                                </ul>
-                            </section>
-
-                            <section id="symbol-values" class="infographic-section">
-                                <h2 class="text-2xl font-bold infographic-header-text mb-4">2. Symbol Values & Types</h2>
-                                <p class="infographic-text-color mb-4">Each symbol in the game carries a base payout value, which is applied when a winning combination of 5 identical symbols lands on a payline. Wild and Bonus symbols have special functions.</p>
-                                <div class="overflow-x-auto">
-                                    <table class="w-full paytable-table">
-                                        <thead>
-                                            <tr>
-                                                <th class="py-2 px-4 infographic-bg-slate-100 font-semibold text-left">Symbol</th>
-                                                <th class="py-2 px-4 infographic-bg-slate-100 font-semibold text-center">Full Value (x Bet for 5 Symbols)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td class="py-2 px-4 flex items-center"><span class="infographic-text-xl mr-2">🎈</span> Balloons</td><td class="py-2 px-4 text-center">x2.5</td></tr>
-                                            <tr><td class="py-2 px-4 flex items-center"><span class="infographic-text-xl mr-2">🍦</span> Ice Cream</td><td class="py-2 px-4 text-center">x5</td></tr>
-                                            <tr><td class="py-2 px-4 flex items-center"><span class="infographic-text-xl mr-2">🎟️</span> Carnival Tickets</td><td class="py-2 px-4 text-center">x7.5</td></tr>
-                                            <tr><td class="py-2 px-4 flex items-center"><span class="infographic-text-xl mr-2">🎡</span> Ferris Wheel</td><td class="py-2 px-4 text-center">x10</td></tr>
-                                            <tr><td class="py-2 px-4 flex items-center"><span class="infographic-text-xl mr-2">🎢</span> Roller Coaster</td><td class="py-2 px-4 text-center">x12.5</td></tr>
-                                            <tr><td class="py-2 px-4 flex items-center"><span class="infographic-text-xl mr-2">🍬</span> Cotton Candy</td><td class="py-2 px-4 text-center">x15</td></tr>
-                                            <tr><td class="py-2 px-4 flex items-center"><span class="infographic-text-xl mr-2">W</span> Wild</td><td class="py-2 px-4 text-center">x20 (substitutes for others)</td></tr>
-                                            <tr><td class="py-2 px-4 flex items-center"><span class="infographic-text-xl mr-2">B</span> Bonus</td><td class="py-2 px-4 text-center">Triggers Free Spins (if on payline)</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                   <h3 class="text-xl font-bold infographic-header-text mt-6 mb-4">Relative Symbol Strength</h3>
-                                <p class="infographic-text-color mb-4">This chart visualizes the full payout value of each regular symbol, giving an immediate sense of their relative worth in the game.</p>
-                                <div class="chart-container">
-                                    <canvas id="symbolValueChart"></canvas>
-                                </div>
-                            </section>
-
-                            <section id="probability" class="infographic-section">
-                                <h2 class="text-2xl font-bold infographic-header-text mb-4">3. Probability of Landing Symbols</h2>
-                                <p class="infographic-text-color mb-4">The game uses a dynamic randomized selection process for symbols, rather than fixed reel strips. This means each visible slot's symbol is independently determined during a spin.</p>
-                                <ul class="list-disc list-inside infographic-text-color space-y-2">
-                                    <li><strong>Regular Symbols (🎈, 🍦, 🎟️, 🎡, 🎢, 🍬, W):</strong> There are 7 unique regular symbols in the random selection pool. Therefore, the theoretical probability of any single specific regular symbol landing in a given slot is $\frac{1}{7}$.</li>
-                                    <li><strong>Bonus Symbol (B):</strong> The 'B' Bonus symbol is not part of the general random pool. Instead, there's a specific, controlled chance ($\sim15\%$) for it to appear in a visible slot (specifically, the middle row of a reel when it stops), but only if Free Spins are not already active. This is a targeted placement to manage bonus frequency.</li>
-                                    <li><strong>Dynamic Generation:</strong> Since symbols are chosen randomly for each slot per spin, the exact distribution changes each round.</li>
-                                </ul>
-                            </section>
-                            
-                            <section id="payout-mechanics" class="infographic-section">
-                                <h2 class="text-2xl font-bold infographic-header-text mb-4">4. Tiered Payout Logic (Interactive)</h2>
-                                <p class="infographic-text-color mb-4">Winning combinations are evaluated on active paylines from left to right. The payout value depends on the symbol's base value and the number of consecutive matching symbols, scaled by your current bet.</p>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                                    <div class="bg-slate-50 p-4 rounded-lg shadow-inner">
-                                        <label for="currentBet" class="block infographic-text-sm font-medium infographic-text-color mb-1">Current Bet ($)</label>
-                                        <input type="number" id="currentBet" value="50" min="5" max="500" class="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 infographic-input-focus">
-                                    </div>
-                                    <div class="bg-slate-50 p-4 rounded-lg shadow-inner">
-                                        <label for="matchCount" class="block infographic-text-sm font-medium infographic-text-color mb-1">Matching Symbols</label>
-                                        <select id="matchCount" class="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 infographic-input-focus">
-                                            <option value="3">3 Symbols</option>
-                                            <option value="4">4 Symbols</option>
-                                            <option value="5">5 Symbols</option>
-                                        </select>
-                                    </div>
-                                    <div class="bg-slate-50 p-4 rounded-lg shadow-inner">
-                                        <label for="symbolType" class="block infographic-text-sm font-medium infographic-text-color mb-1">Symbol Type</label>
-                                        <select id="symbolType" class="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 infographic-input-focus">
-                                            <option value="BALLOON">🎈 Balloons</option>
-                                            <option value="ICECREAM">🍦 Ice Cream</option>
-                                            <option value="TICKET">🎟️ Carnival Tickets</option>
-                                            <option value="FERRIS">🎡 Ferris Wheel</option>
-                                            <option value="COASTER">🎢 Roller Coaster</option>
-                                            <option value="COTTON">🍬 Cotton Candy</option>
-                                            <option value="WILD_HOUSE">W Wild</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="text-center infographic-highlight-bg text-white p-4 rounded-lg shadow-lg">
-                                    <p class="text-lg font-semibold">Calculated Payout:</p>
-                                    <p id="calculatedPayout" class="text-4xl font-extrabold">$0.00</p>
-                                    <p class="infographic-text-sm mt-2">Payout is calculated as: Symbol Base Value × Multiplier × Current Bet</p>
-                                </div>
-
-                                <p class="infographic-text-color mt-6">
-                                    **How it works:** Choose your current bet, the number of symbols that match on a payline, and the type of symbol. The calculator will instantly display the theoretical payout for that combination.
-                                    <br>
-                                    **Free Spins Trigger:** Landing 3 or more 'B' (Bonus) symbols on an active payline triggers 10 Free Spins with a 2x or 3x multiplier on all wins during the free spin round.
-                                </p>
-                            </section>
-
-                            <section id="rtp-complexity" class="infographic-section">
-                                <h2 class="text-2xl font-bold infographic-header-text mb-4">5. Return to Player (RTP) & Complexity</h2>
-                                <p class="infographic-text-color mb-4">The Return to Player (RTP) indicates the theoretical percentage of all money wagered that is paid back to players over time. For this game, a single static RTP percentage is not straightforward to determine due to its dynamic nature:</p>
-                                <ul class="list-disc list-inside infographic-text-color space-y-2">
-                                    <li><strong>Dynamic Symbol Generation:</strong> Symbols are randomly chosen for each slot during every spin, unlike fixed reel strips in traditional physical slot machines. This leads to fluctuating symbol distributions.</li>
-                                    <li><strong>Wild & Bonus Interactions:</strong> The Wild symbol's substitution ability and the Bonus symbol's payline-triggered Free Spins add layers of complexity to combinatorial probability calculations.</li>
-                                    <li><strong>Multiple Paylines:</strong> The interaction of wins across 10 different paylines further complicates precise manual RTP calculation.</li>
-                                </ul>
-                                <p class="infographic-text-color mt-4">The payout values and probabilities are designed to influence the overall frequency and size of wins. The current reduced base values (compared to previous versions) mean that the game is set to provide smaller average wins over time, resulting in a lower effective RTP than a game with higher base payouts.</p>
-                            </section>
-
-                        </main>
-                        
-                        <footer class="text-center py-8">
-                            <p class="text-slate-500">Data is illustrative and for demonstration purposes. Infographic generated by Google Gemini.</p>
-                        </footer>
-                    </div>
-                </div>
-
-            </div>
-        </div>
+<body>
+  <div class="app-container">
+    <!-- status header -->
+    <div class="status-bar">
+      <div class="logo-badge">
+        <div class="logo-icon">✨</div>
+        <div class="logo-text"><span>Gesture</span>Lens</div>
+      </div>
+      <div class="gesture-indicator">
+        <span>🖐️ <span id="fingerCountDisplay">0</span> fingers</span>
+        <span class="value" id="filterLabel">Natural</span>
+      </div>
+      <div class="tracking-status">
+        <span class="dot" id="trackingDot"></span>
+        <span id="trackingText">Ready</span>
+      </div>
     </div>
 
-    <script type="module">
-        // Ensure global variables are defined for Firebase, even if not used directly in this version.
-        // This is a placeholder for potential future persistence features.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    <!-- camera preview -->
+    <div class="camera-stage" id="cameraStage">
+      <video id="videoElement" autoplay playsinline muted></video>
+      <canvas id="outputCanvas"></canvas>
+      <div class="camera-off-message" id="cameraOffMessage">
+        <span>📷 Camera is off</span>
+        <span style="font-size: 0.9rem;">Click "Start Camera" to begin</span>
+      </div>
+    </div>
 
-        /**
-         * @function generatePaylinePatternHtml
-         * @description Generates HTML for a single payline pattern (ASCII art representation).
-         * @param {number[]} payline - An array representing the row indices for each reel in the payline.
-         * @param {number} paylineIndex - The 0-based index of the payline.
-         * @returns {string} HTML string for the payline pattern.
-         */
-        function generatePaylinePatternHtml(payline, paylineIndex) {
-            let patternHtml = `<p><strong>Payline ${paylineIndex + 1}</strong></p><pre>`;
-            for (let r = 0; r < 3; r++) { // 3 rows
-                for (let c = 0; c < 5; c++) { // 5 reels
-                    if (payline[c] === r) {
-                        patternHtml += 'S '; // 'S' for Symbol
-                    } else {
-                        patternHtml += '. '; // '.' for empty slot
-                    }
-                }
-                patternHtml = patternHtml.trimEnd() + '\n'; // Trim last space and add newline
-            }
-            patternHtml += '</pre>';
-            return `
-                <div class="payline-example-item">
-                    ${patternHtml}
-                </div>
-            `;
+    <!-- control panel -->
+    <div class="control-panel">
+      <div class="camera-controls">
+        <button class="btn btn-primary" id="startBtn">▶ Start Camera</button>
+        <button class="btn" id="stopBtn" disabled>⏹ Stop</button>
+        <button class="btn" id="switchBtn" disabled>🔄 Switch</button>
+      </div>
+      <div class="intensity-slider-container">
+        <label for="intensitySlider">Intensity</label>
+        <input type="range" id="intensitySlider" min="0" max="1" step="0.01" value="0.8">
+      </div>
+      <div class="filter-name-badge" id="currentFilterName">Natural</div>
+    </div>
+
+    <!-- error message area -->
+    <div class="error-message" id="errorMessage"></div>
+  </div>
+
+  <!-- main script -->
+  <script type="module">
+    // ============================================================
+    // GESTURE LENS — Real-time AI Face Filter with Hand Landmarks
+    // ============================================================
+    import { HandLandmarker, FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8";
+
+    // ---------- DOM ELEMENTS ----------
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('outputCanvas');
+    const ctx = canvas.getContext('2d');
+    const cameraOffMsg = document.getElementById('cameraOffMessage');
+    const cameraStage = document.getElementById('cameraStage');
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const switchBtn = document.getElementById('switchBtn');
+    const intensitySlider = document.getElementById('intensitySlider');
+
+    const fingerCountDisplay = document.getElementById('fingerCountDisplay');
+    const filterLabel = document.getElementById('filterLabel');
+    const currentFilterName = document.getElementById('currentFilterName');
+    const trackingDot = document.getElementById('trackingDot');
+    const trackingText = document.getElementById('trackingText');
+    const errorMessage = document.getElementById('errorMessage');
+
+    // ---------- STATE ----------
+    let stream = null;
+    let videoTrack = null;
+    let facingMode = 'user';
+    let isCameraActive = false;
+    let animationFrameId = null;
+
+    // MediaPipe instances
+    let handLandmarker = null;
+    let faceLandmarker = null;
+    let lastVideoTime = -1;
+
+    // Gesture state
+    let currentFingerCount = 0;          // stable count after debounce
+    let rawFingerCount = 0;              // immediate detection
+    let lastGestureChangeTime = 0;
+    const GESTURE_DEBOUNCE_MS = 180;     // avoid flicker
+
+    // Filter parameters (interpolated)
+    let currentParams = {
+      brightness: 1.0,
+      contrast: 1.0,
+      saturation: 1.0,
+      warmth: 0.0,        // -1 to 1 (cool to warm)
+      glowIntensity: 0.0, // 0-1 extra glow
+      tintStrength: 0.0,  // additional color grading
+    };
+    let targetParams = { ...currentParams };
+
+    // Manual intensity (slider)
+    let masterIntensity = 0.8;
+
+    // Face region (normalized coords) for localized effects
+    let faceRegion = { x: 0.3, y: 0.2, w: 0.4, h: 0.5, detected: false };
+
+    // Hand position (normalized) for interaction mode
+    let handY = 0.5; // 0 top, 1 bottom
+    let handActive = false;
+
+    // ---------- GESTURE PRESETS ----------
+    // Each preset defines target filter params (absolute, before master intensity)
+    const PRESETS = {
+      0: { // natural
+        brightness: 1.0, contrast: 1.0, saturation: 1.0,
+        warmth: 0.0, glowIntensity: 0.0, tintStrength: 0.0,
+        name: 'Natural'
+      },
+      1: { // subtle warm + enhancement
+        brightness: 1.08, contrast: 1.05, saturation: 1.15,
+        warmth: 0.25, glowIntensity: 0.2, tintStrength: 0.15,
+        name: 'Warm Glow'
+      },
+      2: { // bright skin-tone + soft glow
+        brightness: 1.18, contrast: 1.02, saturation: 1.25,
+        warmth: 0.35, glowIntensity: 0.45, tintStrength: 0.25,
+        name: 'Radiant'
+      },
+      3: { // cinematic high-contrast
+        brightness: 1.05, contrast: 1.4, saturation: 1.2,
+        warmth: 0.1, glowIntensity: 0.25, tintStrength: 0.3,
+        name: 'Cinematic'
+      },
+      4: { // cool aesthetic
+        brightness: 1.06, contrast: 1.1, saturation: 1.1,
+        warmth: -0.35, glowIntensity: 0.15, tintStrength: 0.2,
+        name: 'Cool Tone'
+      },
+      5: { // premium glow / open palm
+        brightness: 1.22, contrast: 1.15, saturation: 1.3,
+        warmth: 0.2, glowIntensity: 0.7, tintStrength: 0.4,
+        name: 'Premium Glow'
+      }
+    };
+
+    // ---------- UTILS ----------
+    function showError(msg) {
+      errorMessage.style.display = 'block';
+      errorMessage.textContent = msg;
+      setTimeout(() => {
+        if (errorMessage.textContent === msg) errorMessage.style.display = 'none';
+      }, 6000);
+    }
+
+    function setTrackingStatus(active, text = '') {
+      if (active) {
+        trackingDot.classList.remove('inactive');
+        trackingText.textContent = text || 'Tracking';
+      } else {
+        trackingDot.classList.add('inactive');
+        trackingText.textContent = text || 'Ready';
+      }
+    }
+
+    function updateGestureDisplay(count) {
+      fingerCountDisplay.textContent = count;
+    }
+
+    function updateFilterLabel(name) {
+      filterLabel.textContent = name;
+      currentFilterName.textContent = name;
+    }
+
+    // ---------- CAMERA CONTROL ----------
+    async function startCamera() {
+      if (isCameraActive) return;
+      try {
+        if (stream) {
+          stream.getTracks().forEach(t => t.stop());
+          stream = null;
         }
-
-        // Phaser Game Scene
-        class GameScene extends Phaser.Scene {
-            constructor() {
-                super('GameScene');
-
-                // Game Configuration
-                this.numReels = 5;
-                this.numRows = 3;
-                this.symbolSize = 115; // Adjusted symbol size for better visual appearance
-                this.reelPadding = 10; // Padding between reels for spacing
-                // Calculate total width and height for the reel area (including padding within the background box)
-                this.reelContainerWidth = (this.numReels * this.symbolSize) + ((this.numReels - 1) * this.reelPadding);
-                this.reelContainerHeight = this.numRows * this.symbolSize;
-                this.spinDuration = 2000; // Duration for the full spin animation (in ms)
-                this.stopDelay = 300; // Delay between each reel stopping
-                this.totalSymbolsPerReel = this.numRows + 6; // 3 visible rows + 3 buffer rows above + 3 buffer rows below = 9 symbols for seamless looping animation
-
-                // UI dimensions (defined in pixels, will scale with canvas)
-                this.topUIHeight = 80; // Height for the top UI bar (Balance, Last Win)
-                this.bottomUIHeight = 80; // Adjusted height for the bottom UI panel
-
-                // Symbols (emoji representations) and their NEW FULL VALUES per bet unit
-                this.symbols = {
-                    low: [
-                        { name: 'BALLOON', emoji: '🎈', value: 2.5 }, // Full value for 5-of-a-kind (per bet unit)
-                        { name: 'ICECREAM', emoji: '🍦', value: 5 },
-                        { name: 'TICKET', emoji: '🎟️', value: 7.5 }
-                    ],
-                    high: [
-                        { name: 'FERRIS', emoji: '🎡', value: 10 },
-                        { name: 'COASTER', emoji: '🎢', value: 12.5 },
-                        { name: 'COTTON', emoji: '🍬', value: 15 }
-                    ],
-                    wild: { name: 'WILD_HOUSE', emoji: 'W', value: 20 }, // Wild symbol
-                    bonus: { name: 'BONUS', emoji: 'B', value: 0 } // Bonus symbol (no direct payout, triggers Free Spins)
-                };
-
-                // Combine all symbols for random selection during reel generation, including bonus for a chance to land it
-                this.allRegularSymbols = [
-                    ...this.symbols.low,
-                    ...this.symbols.high,
-                    this.symbols.wild
-                ];
-
-                // Reel state variables
-                this.reels = []; // Array to hold Phaser reel containers
-                this.isSpinning = false; // Flag to track if reels are spinning
-                this.balance = 1000; // Initial player balance
-                this.allowedBets = [5, 10, 20, 40, 50, 100, 200, 500]; // Predefined allowed bet values
-                this.currentBet = 50; // Default bet amount
-                this.lastWin = 0; // Amount won in the last spin
-                this.freeSpins = 0; // Number of remaining free spins
-                this.freeSpinMultiplier = 1; // Multiplier for free spin wins
-
-                // Payline definitions (row indices for each reel, row 0-2)
-                this.paylines = [
-                    [0, 0, 0, 0, 0], // Line 1: Top row straight
-                    [1, 1, 1, 1, 1], // Line 2: Middle row straight
-                    [2, 2, 2, 2, 2], // Line 3: Bottom row straight
-                    [0, 1, 2, 1, 0], // Line 4: V shape
-                    [2, 1, 0, 1, 2], // Line 5: Inverted V
-                    [0, 0, 1, 0, 0], // Line 6: Top, Middle, Top
-                    [2, 2, 1, 2, 2], // Line 7: Bottom, Middle, Bottom
-                    [1, 0, 0, 0, 1], // Line 8: Diagonal up-left
-                    [1, 2, 2, 2, 1], // Line 9: Diagonal down-left
-                    [0, 1, 1, 1, 0]  // Line 10: V on middle
-                ];
-
-                this.activePaylineHighlights = []; // Array to store graphics objects of drawn paylines
-                this.paylineNumberTexts = []; // Array to store text objects for payline numbers
-                this.activePaylineRowOffsets = {}; // To track vertical offsets for overlapping payline numbers
-                this.spinNoiseSynth = null; // Tone.js synth for spin sound
-            }
-
-            preload() {
-                // No external assets to load for this emoji/text-based game as symbols are text
-            }
-
-            create() {
-                // Log Phaser version and canvas dimensions for debugging
-                console.log("Phaser version:", Phaser.VERSION);
-                console.log("Phaser game started with dimensions:", this.sys.game.canvas.width, this.sys.game.canvas.height);
-
-                // Get references to HTML UI elements (only those remaining HTML elements)
-                this.messageBox = document.getElementById('message-box');
-                this.messageText = document.getElementById('message-text');
-                this.messageOkButton = document.getElementById('message-ok-button');
-                this.hamburgerMenu = document.getElementById('hamburger-menu');
-                this.infoButton = document.getElementById('info-button'); // The 'i' button
-                this.paytableModalOverlay = document.getElementById('paytable-modal-overlay');
-                this.closePaytableBtn = document.getElementById('close-paytable-btn');
-                this.paytableTabButton = document.getElementById('paytable-tab-button');
-                this.infoTabButton = document.getElementById('info-tab-button');
-                this.paytableContent = document.getElementById('paytable-content');
-                this.infoContent = document.getElementById('info-content');
-                this.paylinesVisualsContainer = document.getElementById('paylines-visuals-container');
-
-                // Dynamically populate paylines visuals in the modal using the helper function
-                let paylinesHtml = '';
-                this.paylines.forEach((payline, index) => {
-                    paylinesHtml += generatePaylinePatternHtml(payline, index);
-                });
-                this.paylinesVisualsContainer.innerHTML = paylinesHtml;
-
-
-                // Calculate overall reel block dimensions including padding for the background box
-                const backgroundBoxWidth = this.reelContainerWidth + 40; // 20px padding on each side
-                const availableGameHeight = this.cameras.main.height - this.topUIHeight - this.bottomUIHeight;
-                const backgroundBoxHeight = this.reelContainerHeight + 40; // 20px padding on top/bottom
-
-                // Calculate top-left coordinates for the background box to center it within the available game area
-                this.reelBackgroundX = this.cameras.main.width / 2 - backgroundBoxWidth / 2;
-                this.reelBackgroundY = this.topUIHeight + (availableGameHeight / 2) - (backgroundBoxHeight / 2);
-
-
-                // Create a graphics object for drawing the reel background (the dark, rounded rectangle)
-                this.reelBackground = this.add.graphics();
-                this.reelBackground.fillStyle(0x000000, 0.4); // Dark transparent background for reels
-                this.reelBackground.fillRoundedRect(
-                    this.reelBackgroundX,
-                    this.reelBackgroundY,
-                    backgroundBoxWidth,
-                    backgroundBoxHeight,
-                    20 // Border radius for the background box
-                );
-
-                // Calculate the top-left X, Y for the actual reel set (inside the background padding)
-                this.reelSetStartX = this.reelBackgroundX + 20; // 20px padding from background left
-                this.reelSetStartY = this.reelBackgroundY + 20; // 20px padding from background top
-
-                // Create reels (Phaser containers for symbols)
-                for (let i = 0; i < this.numReels; i++) {
-                    // Reel's X position is reelSetStartX + (current reel's offset from start of reel set)
-                    const reelX = this.reelSetStartX + (i * (this.symbolSize + this.reelPadding));
-                    // Reel's Y position is the top of the visible reel area
-                    const reel = this.add.container(reelX, this.reelSetStartY);
-                    reel.symbols = []; // Array to hold Phaser.GameObjects.Text for symbols within this reel
-                    reel.symbolTweens = []; // Array to hold individual symbol spinning tweens for this reel
-                    this.reels.push(reel);
-
-                    // Initialize symbols for each reel. We add extra symbols above and below for smooth looping.
-                    // The 'j - 3' offset ensures that symbols at indices 3, 4, 5 are the first visible ones (rows 0, 1, 2)
-                    for (let j = 0; j < this.totalSymbolsPerReel; j++) {
-                        const randomSymbolData = Phaser.Utils.Array.GetRandom(this.allRegularSymbols); // Randomly pick a symbol
-                        const emojiToDisplay = (randomSymbolData.name === 'WILD_HOUSE') ? this.symbols.wild.emoji : randomSymbolData.emoji; // Use 'W' for WILD_HOUSE
-
-                        const symbolText = this.add.text(
-                            this.symbolSize / 2, // X: Center of its own slot (relative to reel container's X origin)
-                            (j - (this.totalSymbolsPerReel - this.numRows) / 2) * this.symbolSize + (this.symbolSize / 2), // Y: Initial positioning for seamless loop, centered in its virtual slot
-                            emojiToDisplay, // Display the chosen emoji
-                            {
-                                fontSize: `${this.symbolSize * 0.7}px`, // Dynamic font size based on symbol size
-                                fill: '#ffffff', // White color for symbols
-                                align: 'center',
-                                stroke: '#000000', // Black stroke for better visibility
-                                strokeThickness: 3,
-                                shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 4, fill: true }
-                            }
-                        ).setOrigin(0.5); // Center the origin of the text
-                        symbolText.symbolData = randomSymbolData; // Store symbol data (name, emoji, value) for win checking
-                        reel.add(symbolText); // Add symbol to the reel container
-                        reel.symbols.push(symbolText);
-                    }
-
-                    // Create a mask for each reel to hide symbols outside the visible area
-                    const maskGraphics = this.make.graphics();
-                    maskGraphics.fillRoundedRect(
-                        reelX, /* X position of mask (aligned with reel container X) */
-                        this.reelSetStartY, /* Y position of mask (top of reel display) */
-                        this.symbolSize, /* Width of mask (same as symbol size) */
-                        this.reelContainerHeight, /* Height of mask (same as 3 rows) */
-                        10 /* Border radius for mask */
-                    );
-                    const mask = maskGraphics.createGeometryMask();
-                    reel.setMask(mask);
-                }
-
-                // Create placeholder text objects for payline numbers.
-                const paylineLabelOffsetX = -60; // Offset for payline numbers to the left of the reels
-
-                // Map to store Y coordinates for payline labels for each row (centered vertically within the row)
-                this.paylineLabelYCoords = {
-                    0: this.reelSetStartY + (0 * this.symbolSize) + (this.symbolSize / 2), // Center of row 0
-                    1: this.reelSetStartY + (1 * this.symbolSize) + (this.symbolSize / 2), // Center of row 1
-                    2: this.reelSetStartY + (2 * this.symbolSize) + (this.symbolSize / 2)  // Center of row 2
-                };
-
-                for (let i = 0; i < this.paylines.length; i++) {
-                    const startingRow = this.paylines[i][0];
-                    const labelY = this.paylineLabelYCoords[startingRow];
-
-                    const paylineNumText = this.add.text(
-                        this.reelSetStartX + paylineLabelOffsetX,
-                        labelY,
-                        (i + 1).toString(),
-                        {
-                            fontSize: '24px',
-                            fill: '#ffffff',
-                            backgroundColor: '#d84315',
-                            padding: { x: 8, y: 4 },
-                            borderRadius: 8,
-                            fontWeight: 'bold'
-                        }
-                    ).setOrigin(0.5).setVisible(false);
-                    this.paylineNumberTexts.push(paylineNumText);
-                }
-
-                // --- Create Phaser-based UI elements for game controls (bottom panel) ---
-
-                // Common style for info boxes within the UI panel
-                const infoBoxTextStyle = {
-                    fontSize: '15px', // Reduced by 30% from 22px
-                    fill: '#d84315',
-                    backgroundColor: '#fff3e0',
-                    padding: { x: 8, y: 4 }, // Reduced padding
-                    borderRadius: 8, // Slightly smaller rounded corners
-                    fontWeight: 'bold'
-                };
-
-                // Bottom UI Panel Background
-                const uiPanelWidth = this.cameras.main.width;
-                const uiPanelHeight = this.bottomUIHeight; // Use the reduced height (80px)
-                const uiPanelX = 0;
-                const uiPanelY = this.cameras.main.height - uiPanelHeight;
-
-                this.uiBackground = this.add.graphics();
-                this.uiBackground.fillStyle(0xffffff, 0.9); // Semi-transparent white
-                this.uiBackground.fillRect(uiPanelX, uiPanelY, uiPanelWidth, uiPanelHeight);
-                this.uiBackground.setScrollFactor(0); // Fixed to camera
-
-                // Balance (Bottom Left)
-                // Positioned relative to the top of the UI panel (uiPanelY)
-                this.balanceText = this.add.text(uiPanelX + 20, uiPanelY + 10, 'Balance: $1000.00', infoBoxTextStyle)
-                                 .setOrigin(0, 0) // Top-left aligned within its section
-                                 .setScrollFactor(0);
-                
-                // Last Win / Free Spins Display (Under Balance, Bottom Left)
-                // Positioned relative to the bottom of the Balance text
-                this.lastWinText = this.add.text(uiPanelX + 20, this.balanceText.y + this.balanceText.height + 5, 'Last Win: $0.00', infoBoxTextStyle)
-                                 .setOrigin(0, 0) // Top-left aligned below balance
-                                 .setScrollFactor(0);
-
-                this.freeSpinsText = this.add.text(uiPanelX + 20, this.balanceText.y + this.balanceText.height + 5, '', infoBoxTextStyle)
-                                    .setOrigin(0, 0).setScrollFactor(0).setVisible(false); // Initially hidden
-
-
-                // Spin Button (Bottom Center)
-                const spinButtonWidth = 180; // Adjusted width for the spin button graphic
-                const spinButtonHeight = 45; // Adjusted height for spin button
-                const spinButtonRadius = 22; // Adjusted border radius for the spin button graphic
-
-                this.spinButtonGraphic = this.add.graphics();
-                this.spinButtonGraphic.fillStyle(0x4caf50); // Green background for the button
-                this.spinButtonGraphic.fillRoundedRect(
-                    -spinButtonWidth / 2, // X relative to container origin (center)
-                    -spinButtonHeight / 2, // Y relative to container origin (center)
-                    spinButtonWidth,
-                    spinButtonHeight,
-                    spinButtonRadius
-                );
-
-                this.spinButtonText = this.add.text(0, 0, 'SPIN!', { // Text is relative to button container
-                    fontSize: '22px', // Reduced by 30% from 32px
-                    fill: '#ffffff',
-                    fontWeight: 'bold',
-                    shadow: { offsetX: 2, offsetY: 2, color: '#2980b9', blur: 4, fill: true } // Adjusted shadow
-                }).setOrigin(0.5);
-
-                this.spinButtonPhaser = this.add.container(
-                    this.cameras.main.width / 2,
-                    uiPanelY + (uiPanelHeight / 2) // Center in the bottom UI panel
-                ).setScrollFactor(0).setInteractive(new Phaser.Geom.Rectangle(-spinButtonWidth / 2, -spinButtonHeight / 2, spinButtonWidth, spinButtonHeight), Phaser.Geom.Rectangle.Contains);
-                this.spinButtonPhaser.add([this.spinButtonGraphic, this.spinButtonText]);
-
-                // Add button-like visual effects for the Spin Button Container
-                this.spinButtonPhaser.on('pointerover', () => { this.spinButtonPhaser.setScale(1.05); });
-                this.spinButtonPhaser.on('pointerout', () => { this.spinButtonPhaser.setScale(1); });
-                this.spinButtonPhaser.on('pointerdown', () => { this.spinButtonPhaser.setScale(0.95); });
-                this.spinButtonPhaser.on('pointerup', () => { this.spinButtonPhaser.setScale(1.05); });
-
-
-                // Bet controls (Bottom Right)
-                // Using a container to group bet buttons and text
-                const betControlGroupWidth = 180; // Adjusted width for bet elements
-                const betControlGroupX = this.cameras.main.width - 20; // Align container's right edge with canvas right
-                const betControlGroupY = uiPanelY + (uiPanelHeight / 2);
-
-                this.betControlGroup = this.add.container(betControlGroupX, betControlGroupY).setScrollFactor(0); 
-                // Children are positioned relative to the container's top-left origin (betControlGroupX, betControlGroupY)
-                // Adjust their positions to make the group appear centered around its visual center while the container is right-aligned.
-                const betBtnWidth = 40; // Smaller button width
-                const betTextWidth = 90; // Smaller text width
-                const innerPadding = 5; // Smaller spacing
-
-                // Calculate relative X positions for children within the container, so the whole group is centered around the container's *target* point (which is now its right edge, with an offset for padding).
-                // To position elements relative to the right edge of the canvas (betControlGroupX), and center the group:
-                // Start with rightmost element (increase button), then center text, then leftmost (decrease button).
-                const increaseBtnRelativeX = -betBtnWidth / 2; // Relative to container's X (which is already 20px from right edge)
-                const betTextRelativeX = increaseBtnRelativeX - (betBtnWidth / 2) - innerPadding - (betTextWidth / 2);
-                const decreaseBtnRelativeX = betTextRelativeX - (betTextWidth / 2) - innerPadding - (betBtnWidth / 2);
-
-
-                this.betIncreaseBtnPhaser = this.add.text(increaseBtnRelativeX, 0, '+', { // Relative to container
-                    fontSize: '28px', // Adjusted font size
-                    fill: '#e65100',
-                    backgroundColor: '#ffcc80',
-                    padding: { x: 12, y: 5 }, // Reduced padding
-                    borderRadius: 8,
-                    fontWeight: 'bold',
-                    fixedWidth: betBtnWidth,
-                    align: 'center'
-                }).setOrigin(0.5); // Center origin of text relative to its own bounds
-                this.betIncreaseBtnPhaser.setPadding(0, 0, 0, 0); // Reset padding from style property
-
-                this.betText = this.add.text(betTextRelativeX, 0, 'Bet: $50', infoBoxTextStyle).setOrigin(0.5); // Relative to container
-
-                this.betDecreaseBtnPhaser = this.add.text(decreaseBtnRelativeX, 0, '-', { // Relative to container
-                    fontSize: '28px', // Adjusted font size
-                    fill: '#e65100',
-                    backgroundColor: '#ffcc80',
-                    padding: { x: 12, y: 5 }, // Reduced padding
-                    borderRadius: 8,
-                    fontWeight: 'bold',
-                    fixedWidth: betBtnWidth,
-                    align: 'center'
-                }).setOrigin(0.5); // Center origin of text relative to its own bounds
-                this.betDecreaseBtnPhaser.setPadding(0, 0, 0, 0);
-
-                // Add elements in logical order to the container
-                this.betControlGroup.add([this.betDecreaseBtnPhaser, this.betText, this.betIncreaseBtnPhaser]);
-
-
-                // Add event listeners for new Phaser UI buttons
-                this.spinButtonPhaser.on('pointerdown', () => this.startSpin());
-                this.betDecreaseBtnPhaser.on('pointerdown', () => this.adjustBet(-1));
-                this.betIncreaseBtnPhaser.on('pointerdown', () => this.adjustBet(1));
-
-                // Update UI displays initially
-                this.updateUI();
-
-                // Add event listeners for HTML UI elements (only those remaining HTML elements)
-                this.messageOkButton.addEventListener('click', () => this.hideMessage());
-                this.hamburgerMenu.addEventListener('click', () => this.showPaytable('paytable'));
-                this.infoButton.addEventListener('click', () => this.showPaytable('info'));
-                this.closePaytableBtn.addEventListener('click', () => this.hidePaytable());
-                this.paytableModalOverlay.addEventListener('click', (event) => {
-                    if (event.target === this.paytableModalOverlay) {
-                        this.hidePaytable();
-                    }
-                });
-                this.paytableTabButton.addEventListener('click', () => this.switchModalTab('paytable'));
-                this.infoTabButton.addEventListener('click', () => this.switchModalTab('info'));
-            }
-
-            /**
-             * @function playSpinSound
-             * @description Plays a continuous noise sound for the duration of the reel spin.
-             * Uses Tone.NoiseSynth for a 'white noise' effect.
-             */
-            playSpinSound() {
-                // If a synth already exists from a previous spin, stop it first to prevent overlapping sounds.
-                if (this.spinNoiseSynth) {
-                    this.spinNoiseSynth.triggerRelease();
-                }
-                this.spinNoiseSynth = new Tone.NoiseSynth().toDestination();
-                // Play for slightly less than the total spin duration to fade before stop sounds.
-                const duration = (this.spinDuration + (this.numReels * this.stopDelay)) / 1000 - 0.2; // Convert ms to seconds
-                this.spinNoiseSynth.triggerAttackRelease(duration, Tone.now());
-            }
-
-            /**
-             * @function playReelStopSound
-             * @description Plays a short, distinct sound when a reel stops.
-             * @param {number} reelIndex - The index of the reel that just stopped.
-             */
-            playReelStopSound(reelIndex) {
-                const synth = new Tone.Synth().toDestination();
-                // Play a shorter, crisper note on reel stop
-                const notes = ["C4", "E4", "G4", "C5"]; // Ascending notes for reel stops
-                synth.triggerAttackRelease(notes[reelIndex % notes.length], "32n", Tone.now()); // Very short duration ("32n"), play immediately
-            }
-
-            /**
-             * @function playWinSound
-             * @description Plays a celebratory chord sound when a win occurs.
-             */
-            playWinSound() {
-                const synth = new Tone.PolySynth(Tone.Synth, {
-                    envelope: {
-                        attack: 0.02,
-                        decay: 0.1,
-                        sustain: 0.3,
-                        release: 1
-                    }
-                }).toDestination();
-                synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n", Tone.now());
-            }
-
-            /**
-             * @function playBonusSound
-             * @description Plays a distinct sound when a bonus (Free Spins) is triggered.
-             */
-            playBonusSound() {
-                const synth = new Tone.PolySynth(Tone.Synth, {
-                    envelope: {
-                        attack: 0.05,
-                        decay: 0.2,
-                        sustain: 0.4,
-                        release: 1.5
-                    }
-                }).toDestination();
-                synth.triggerAttackRelease(["C4", "G4", "C5", "E5", "G5", "C6"], "4n", Tone.now());
-            }
-
-            /**
-             * @function playClickSound
-             * @description Plays a short click sound for UI interactions like bet adjustment.
-             */
-            playClickSound() {
-                const synth = new Tone.Synth().toDestination();
-                synth.triggerAttackRelease("C4", "16n");
-            }
-
-            /**
-             * @method update
-             * @description The Phaser game loop update method. Not used for continuous reel movement here,
-             * as tweens handle symbol animations.
-             */
-            update() {
-                // No specific continuous updates needed here, tweens manage animations.
-            }
-
-            /**
-             * @function showMessage
-             * @description Displays a custom message box to the user.
-             * @param {string} text - The message to display.
-             */
-            showMessage(text) {
-                this.messageText.textContent = text;
-                this.messageBox.style.display = 'block';
-            }
-
-            /**
-             * @function hideMessage
-             * @description Hides the custom message box.
-             */
-            hideMessage() {
-                this.messageBox.style.display = 'none';
-            }
-
-            /**
-             * @function updateUI
-             * @description Updates the displayed balance, current bet, last win, and free spins count.
-             */
-            updateUI() {
-                this.balanceText.setText(`Balance: $${this.balance.toFixed(2)}`); // Update Phaser text object
-                this.betText.setText(`Bet: $${this.currentBet}`); // Update Phaser text object
-
-                if (this.freeSpins > 0) {
-                    this.lastWinText.setVisible(false); // Hide last win text when free spins are active
-                    this.freeSpinsText.setText(`Free Spins: ${this.freeSpins} (x${this.freeSpinMultiplier})`);
-                    this.freeSpinsText.setVisible(true);
-                } else {
-                    this.freeSpinsText.setVisible(false); // Hide free spins text
-                    this.lastWinText.setText(`Last Win: $${this.lastWin.toFixed(2)}`); // Show last win text
-                    this.lastWinText.setVisible(true);
-                }
-            }
-
-            /**
-             * @function adjustBet
-             * @description Adjusts the current bet amount based on the provided direction, cycling through allowed bets.
-             * @param {number} direction - 1 for increase, -1 for decrease.
-             */
-            adjustBet(direction) {
-                // Ensure Tone.js audio context starts on user interaction if not already running
-                if (Tone.context.state !== 'running') {
-                    Tone.start();
-                }
-
-                if (this.isSpinning || this.freeSpins > 0) return; // Cannot adjust bet during spin or free spins
-
-                let currentIndex = this.allowedBets.indexOf(this.currentBet);
-                let newIndex = currentIndex + direction;
-
-                // Clamp newIndex within the bounds of allowedBets array
-                newIndex = Math.max(0, Math.min(newIndex, this.allowedBets.length - 1));
-
-                // Only update if the bet value actually changes
-                if (this.allowedBets[newIndex] !== this.currentBet) {
-                    this.currentBet = this.allowedBets[newIndex];
-                    this.updateUI();
-                    this.playClickSound(); // Play click sound
-                }
-            }
-
-            /**
-             * @function startSpin
-             * @description Initiates the slot machine spin process.
-             * Handles balance deduction, triggers reel animations, and schedules win checking.
-             */
-            startSpin() {
-                // Ensure Tone.js audio context starts on user interaction if not already running
-                if (Tone.context.state !== 'running') {
-                    Tone.start();
-                }
-
-                if (this.isSpinning) return; // Prevent multiple spins if already spinning
-
-                // Hide any active message box when a new spin starts
-                this.hideMessage();
-
-                // Clear any existing payline highlights and symbol animations from previous spins
-                this.clearPaylineHighlights();
-                // Reset active payline row offsets for new spin
-                this.activePaylineRowOffsets = {};
-
-                // Deduct bet if not in free spins mode
-                if (this.freeSpins === 0) {
-                    if (this.balance < this.currentBet) {
-                        this.showMessage('Not enough balance to spin!');
-                        return;
-                    }
-                    this.balance -= this.currentBet;
-                    this.lastWin = 0; // Reset last win for the new spin
-                    this.freeSpinMultiplier = 1; // Reset multiplier for normal spins
-                } else {
-                    this.freeSpins--; // Consume a free spin
-                }
-
-                this.isSpinning = true;
-                // Disable UI buttons during spin
-                this.spinButtonPhaser.disableInteractive();
-                this.spinButtonPhaser.alpha = 0.5; // Visual feedback for disabled state
-                this.betDecreaseBtnPhaser.disableInteractive();
-                this.betDecreaseBtnPhaser.alpha = 0.5;
-                this.betIncreaseBtnPhaser.disableInteractive();
-                this.betIncreaseBtnPhaser.alpha = 0.5;
-
-                this.hamburgerMenu.style.pointerEvents = 'none'; // Disable HTML hamburger during spin
-                this.infoButton.style.pointerEvents = 'none'; // Disable HTML info button during spin
-                this.updateUI(); // Update UI immediately after balance deduction
-                this.playSpinSound(); // Play spin sound
-
-                // Start reels spinning animation
-                this.reels.forEach(reel => {
-                    // For each symbol in the reel, create a continuous spinning tween
-                    reel.symbols.forEach((symbol) => {
-                        // Kill any existing tween to ensure clean restart
-                        if (symbol.spinningTween) {
-                            symbol.spinningTween.stop();
-                            symbol.spinningTween = null;
-                        }
-
-                        // Create a tween that moves the symbol downwards, simulating continuous spin
-                        // The `y` value goes from its current position to `current + total height of all symbols`
-                        // then onLoop it jumps back to create a seamless loop.
-                        symbol.spinningTween = this.tweens.add({
-                            targets: symbol,
-                            y: symbol.y + (this.symbolSize * this.totalSymbolsPerReel), // Move down by total height of all symbols
-                            duration: 300, // Speed of spin (faster for smooth blur effect)
-                            ease: 'Linear',
-                            loop: -1, // Loop indefinitely
-                            onLoop: () => {
-                                // When a symbol loops, reset its position to the top and randomize its emoji
-                                symbol.y -= (this.symbolSize * this.totalSymbolsPerReel);
-                                const randomSymbolData = Phaser.Utils.Array.GetRandom(this.allRegularSymbols.concat(this.symbols.bonus)); // Include bonus in random pool during spin
-                                const emojiToDisplay = (randomSymbolData.name === 'WILD_HOUSE') ? this.symbols.wild.emoji : randomSymbolData.name === 'BONUS' ? this.symbols.bonus.emoji : randomSymbolData.emoji;
-                                symbol.setText(emojiToDisplay);
-                                symbol.symbolData = randomSymbolData;
-                            }
-                        });
-                    });
-                });
-
-                // Schedule stopping of reels one by one with a delay
-                for (let i = 0; i < this.numReels; i++) {
-                    this.time.delayedCall(this.spinDuration + (i * this.stopDelay), this.stopReel, [i], this);
-                }
-            }
-
-            /**
-             * @function stopReel
-             * @description Stops a single reel and sets its final symbols.
-             * Triggers a bounce animation for the visible symbols.
-             * @param {number} reelIndex - The index of the reel to stop.
-             */
-            stopReel(reelIndex) {
-                if (reelIndex >= this.numReels) return; // Guard against out-of-bounds index
-
-                const reel = this.reels[reelIndex];
-
-                // Step 1: Kill all active spinning tweens for this reel's symbols
-                reel.symbols.forEach(symbol => {
-                    if (symbol.spinningTween) {
-                        symbol.spinningTween.stop();
-                        symbol.spinningTween = null; // Important to nullify to prevent stale references
-                    }
-                });
-
-                // Step 2: Determine the FINAL symbols for all positions on this reel.
-                const finalReelSymbolsData = [];
-                // Generate a full reel strip (including hidden buffer symbols) with final results
-                for (let j = 0; j < this.totalSymbolsPerReel; j++) {
-                    // Randomly select a symbol, including the bonus symbol for potential wins
-                    const chosenSymbol = Phaser.Utils.Array.GetRandom(this.allRegularSymbols.concat(this.symbols.bonus));
-                    finalReelSymbolsData.push(chosenSymbol);
-                }
-
-                // Step 3: Assign these final symbols to the actual Phaser Text objects
-                // and IMMEDIATELY snap them to their correct grid positions (no animation here).
-                reel.symbols.forEach((symbol, symbolArrayIndex) => {
-                    const finalSymbolData = finalReelSymbolsData[symbolArrayIndex];
-                    const emojiToDisplay = (finalSymbolData.name === 'WILD_HOUSE') ? this.symbols.wild.emoji : finalSymbolData.name === 'BONUS' ? this.symbols.bonus.emoji : finalSymbolData.emoji;
-
-                    symbol.setText(emojiToDisplay); // Set the correct display text
-                    symbol.symbolData = finalSymbolData; // Store the original symbol data
-                    // Snap to the exact Y position for its slot within the reel container.
-                    symbol.y = (symbolArrayIndex - (this.totalSymbolsPerReel - this.numRows) / 2) * this.symbolSize + (this.symbolSize / 2);
-                });
-
-                // Step 4: Apply the bounce tween only to the visible symbols to create the landing effect.
-                // The visible symbols are at indices 3, 4, 5 in the reel.symbols array.
-                const visibleSymbolActualIndices = [3, 4, 5];
-                visibleSymbolActualIndices.forEach((actualIndexInReelSymbols) => {
-                    const symbol = reel.symbols[actualIndexInReelSymbols];
-                    // The target Y is already set by the snapping in Step 3.
-                    // We just need to trigger the tween with its current (snapped) position.
-                    this.tweens.add({
-                        targets: symbol,
-                        scale: 1.05, // Uniform scale for bounce effect (reduced to 1.05)
-                        y: symbol.y - 10, // Move up slightly for a subtle bounce
-                        duration: 250, // Increased duration to 250ms for a slower, smoother bounce
-                        ease: 'Power1',
-                        yoyo: true, // Tween back to original scale and Y
-                        onComplete: () => {
-                            symbol.scale = 1; // Ensure scale is reset to 1
-                            symbol.y += 10; // Reset y position after bounce
-                            // Check for win calculation trigger only after the last visible symbol of the last reel completes its animation
-                            if (reelIndex === this.numReels - 1 && actualIndexInReelSymbols === visibleSymbolActualIndices[this.numRows - 1]) {
-                                this.isSpinning = false; // All reels have stopped
-                                // Re-enable UI buttons after spin completes
-                                this.spinButtonPhaser.setInteractive();
-                                this.spinButtonPhaser.alpha = 1;
-                                this.betDecreaseBtnPhaser.setInteractive();
-                                this.betDecreaseBtnPhaser.alpha = 1;
-                                this.betIncreaseBtnPhaser.setInteractive();
-                                this.betIncreaseBtnPhaser.alpha = 1;
-                                
-                                this.hamburgerMenu.style.pointerEvents = 'auto'; // Re-enable HTML hamburger
-                                this.infoButton.style.pointerEvents = 'auto'; // Re-enable HTML info button
-                                this.checkWins(); // Trigger win checking logic
-                            }
-                        }
-                    });
-                });
-                this.playReelStopSound(reelIndex); // Play reel stop sound
-            }
-
-            /**
-             * @function checkWins
-             * @description Checks all paylines for winning combinations after the reels have stopped.
-             * Calculates total win, awards free spins, and triggers visual/audio feedback.
-             */
-            checkWins() {
-                let totalWin = 0;
-                let paylineBonusTriggered = false; // Flag to check if bonus was triggered via payline
-                const visibleSymbolsMatrix = []; // Store the visible symbols for easier access (row, column)
-
-                // Populate visibleSymbolsMatrix array with the currently displayed symbols
-                const visibleSymbolActualIndices = [3, 4, 5]; // Internal indices for visible rows (0, 1, 2)
-                for (let r = 0; r < this.numRows; r++) {
-                    visibleSymbolsMatrix[r] = [];
-                    for (let c = 0; c < this.numReels; c++) {
-                        const symbolIndex = visibleSymbolActualIndices[r];
-                        visibleSymbolsMatrix[r][c] = this.reels[c].symbols[symbolIndex].symbolData;
-                    }
-                }
-
-                console.log('--- Checking Wins for Current Spin ---');
-
-                let didWinThisSpin = false; // Flag for any win (including bonus trigger)
-
-                // Iterate through each predefined payline to check for wins
-                this.paylines.forEach((payline, lineIndex) => {
-                    let lineWin = 0; // Win amount for the current payline
-                    let actualWinningSymbolData = null; // The symbol data that defines the type and value of the win (prefer non-wild)
-                    let matchCount = 0; // Number of consecutive matching symbols
-                    const winningElementsForAnimation = []; // Store Phaser.GameObjects.Text elements that form the win for animation
-                    const fullPaylineElementsForHighlight = []; // Store ALL 5 elements on the payline for drawing the full line
-
-                    // First, populate fullPaylineElementsForHighlight with ALL 5 symbols along this payline's path
-                    for (let col = 0; col < this.numReels; col++) {
-                        const currentSymbolElement = this.reels[col].symbols[visibleSymbolActualIndices[payline[col]]];
-                        fullPaylineElementsForHighlight.push(currentSymbolElement);
-                    }
-
-                    // Now, run the win-checking logic for contiguous matches from left to right
-                    for (let col = 0; col < this.numReels; col++) {
-                        const currentSymbolData = visibleSymbolsMatrix[payline[col]][col];
-                        const currentSymbolElement = this.reels[col].symbols[visibleSymbolActualIndices[payline[col]]];
-
-                        if (col === 0) { // Always start counting from the first reel
-                            actualWinningSymbolData = currentSymbolData;
-                            matchCount = 1;
-                            winningElementsForAnimation.push(currentSymbolElement); // Add to animation list
-                        } else {
-                            // Check if the current symbol matches the established winning symbol or is a Wild
-                            const matchesCurrent = (currentSymbolData.name === actualWinningSymbolData.name);
-                            const isWild = (currentSymbolData.name === 'WILD_HOUSE');
-
-                            if (matchesCurrent || isWild) {
-                                matchCount++;
-                                winningElementsForAnimation.push(currentSymbolElement);
-
-                                // If actualWinningSymbolData was a WILD, and we just found a non-WILD (regular or bonus) matching symbol,
-                                // then the win is now based on this non-WILD symbol's type.
-                                if (actualWinningSymbolData.name === 'WILD_HOUSE' && !isWild) {
-                                    actualWinningSymbolData = currentSymbolData;
-                                }
-                            } else {
-                                // No match and not a wild, so the continuous sequence is broken.
-                                break;
-                            }
-                        }
-                    }
-
-                    // After iterating through the reels for a payline
-                    if (matchCount >= 3) { // A winning combination must have at least 3 symbols
-                        didWinThisSpin = true; // Mark that a win occurred for general sound/message
-
-                        // Handle Bonus symbol win on a payline (triggers Free Spins)
-                        if (actualWinningSymbolData.name === 'BONUS') {
-                            if (this.freeSpins === 0) { // Only trigger free spins if not already in free spins mode
-                                paylineBonusTriggered = true; // Indicate bonus triggered via payline
-                                console.log(`   Payline ${lineIndex + 1} BONUS TRIGGER: ${matchCount} Bonus symbols on payline.`);
-                            }
-                            // Bonus symbol itself doesn't contribute to 'lineWin' in terms of currency payout
-                        } else { // It's a regular symbol win (or wild substituting for regular)
-                            let payoutValue = 0;
-                            if (actualWinningSymbolData.name === 'WILD_HOUSE') {
-                                payoutValue = this.symbols.wild.value; // Use Wild's base value for wilds
-                            } else {
-                                payoutValue = actualWinningSymbolData.value; // Use the actual winning symbol's base value
-                            }
-
-                            // Apply tiered payout multiplier based on match count
-                            let overallMultiplier = 0;
-                            if (matchCount === 3) {
-                                overallMultiplier = 0.25; // 1/4 of full value
-                            } else if (matchCount === 4) {
-                                overallMultiplier = 0.5; // 1/2 of full value
-                            } else if (matchCount === 5) { // Assuming max 5 reels, so 5 symbols
-                                overallMultiplier = 1.0; // Full value
-                            }
-                            
-                            // Calculate line win: (Base Payout per bet unit) * (Match Count Multiplier) * (Current Bet)
-                            lineWin = payoutValue * overallMultiplier * this.currentBet;
-                            totalWin += lineWin;
-                            console.log(`   Payline ${lineIndex + 1} WIN: Symbol=${actualWinningSymbolData.name} (${actualWinningSymbolData.emoji}), Count=${matchCount}, Payout=$${lineWin.toFixed(2)}`);
-                        }
-
-                        // Trigger animations for the *actual winning symbols* (only the matched ones)
-                        winningElementsForAnimation.forEach(symbolText => {
-                            // Clear previous win tweens if any, to prevent conflicts if multi-win occurs
-                            if (symbolText.winTweens) {
-                                symbolText.winTweens.forEach(tween => tween.stop());
-                            }
-                            symbolText.winTweens = []; // Reset the array
-
-                            // Scale and bounce tweens (run indefinitely until cleared)
-                            symbolText.winTweens.push(this.tweens.add({
-                                targets: symbolText,
-                                scale: 1.2, // Pop out effect
-                                y: symbolText.y - 10, // Move up for bounce
-                                yoyo: true,
-                                duration: 250, // Consistent bounce duration
-                                repeat: -1, // Repeat indefinitely
-                                ease: 'Sine.easeInOut',
-                                onStop: () => { // Ensure reset on stop
-                                    symbolText.scale = 1;
-                                    // Calculate original Y position based on its index within its reel's symbol array
-                                    const parentReel = this.reels.find(reel => reel.symbols.includes(symbolText));
-                                    if (parentReel) {
-                                        const originalSymbolIndex = parentReel.symbols.indexOf(symbolText);
-                                        symbolText.y = (originalSymbolIndex - (this.totalSymbolsPerReel - this.numRows) / 2) * this.symbolSize + (this.symbolSize / 2);
-                                    }
-                                }
-                            }));
-                            // Alpha tween (for pulsating effect, run indefinitely until cleared)
-                            symbolText.winTweens.push(this.tweens.add({
-                                targets: symbolText,
-                                alpha: 0.5,
-                                yoyo: true,
-                                duration: 100,
-                                repeat: -1, // Repeat indefinitely
-                                ease: 'Power1',
-                                onStop: () => { symbolText.alpha = 1; } // Reset on stop
-                            }));
-                        });
-
-                        // Draw payline highlight using ALL 5 symbols' positions on that payline
-                        const fullPaylineSymbolPositions = fullPaylineElementsForHighlight.map(symText => {
-                            return {
-                                x: symText.x + symText.parentContainer.x, // Absolute X position
-                                y: symText.y + symText.parentContainer.y  // Absolute Y position
-                            };
-                        });
-                        this.drawPaylineHighlight(lineIndex, fullPaylineSymbolPositions);
-                    }
-                });
-
-                // Apply free spin multiplier if active (applies to total win from regular symbols)
-                if (this.freeSpins > 0) {
-                    const originalWin = totalWin;
-                    totalWin *= this.freeSpinMultiplier;
-                    if (originalWin > 0) { // Only log if there was a base win to multiply
-                        console.log(`   Free Spin Multiplier x${this.freeSpinMultiplier} applied. Adjusted Win: $${totalWin.toFixed(2)}`);
-                    }
-                }
-
-                this.lastWin = totalWin; // Set the last win amount
-                this.balance += totalWin; // Add total win to balance
-
-                // Consolidated Message Logic
-                let message = '';
-                if (totalWin > 0) {
-                    message += `You won $${totalWin.toFixed(2)}!`; // Format win amount
-                }
-
-                // Award free spins after all other win calculations for this spin
-                if (paylineBonusTriggered) {
-                    const freeSpinsAwarded = 10;
-                    this.freeSpins = freeSpinsAwarded;
-                    // Randomly assign a 2x or 3x multiplier for the new free spins round
-                    this.freeSpinMultiplier = 2 + Math.floor(Phaser.Math.RND.frac() * 2);
-                    if (message.length > 0) message += '\n'; // Add newline if there's a previous win message
-                    message += `BONUS! You got ${freeSpinsAwarded} Free Spins with a x${this.freeSpinMultiplier} multiplier!`;
-                    this.playBonusSound(); // Play bonus sound for free spin trigger
-                }
-
-                // Only show message if there's an actual win or bonus trigger
-                if (message.length > 0) {
-                    this.showMessage(message); // Display the consolidated message
-                }
-                
-                // Play generic win sound if any regular win occurred (but not if only bonus was triggered)
-                if (didWinThisSpin && !paylineBonusTriggered) { // If there was a win and it wasn't just a bonus trigger
-                    this.playWinSound(); 
-                }
-
-
-                console.log(`Total Win for this spin: $${totalWin.toFixed(2)}`); // Format console output
-                console.log(`Free Spins remaining: ${this.freeSpins}`);
-                console.log('-------------------------');
-
-                this.updateUI(); // Update UI with new balance and win amount
-            }
-
-            /**
-             * @function drawPaylineHighlight
-             * @description Draws a visual highlight for a winning payline and displays its number.
-             * @param {number} paylineIndex - The 0-based index of the winning payline.
-             * @param {object[]} fullPaylineSymbolPositions - An array of {x, y} coordinates for all 5 symbols on the payline.
-             */
-            drawPaylineHighlight(paylineIndex, fullPaylineSymbolPositions) {
-                if (fullPaylineSymbolPositions.length < 5) return; // Ensure we have all 5 points to draw the line
-
-                const graphics = this.add.graphics();
-                graphics.lineStyle(5, 0xffff00, 1); // Yellow, 5px thick, opaque line
-
-                graphics.beginPath();
-                graphics.moveTo(fullPaylineSymbolPositions[0].x, fullPaylineSymbolPositions[0].y);
-                for (let i = 1; i < fullPaylineSymbolPositions.length; i++) { // Iterate through all 5 points to draw the path
-                    graphics.lineTo(fullPaylineSymbolPositions[i].x, fullPaylineSymbolPositions[i].y);
-                }
-                graphics.strokePath(); // Draw the line
-
-                this.activePaylineHighlights.push(graphics); // Store the graphics object for later clearing
-
-                // Position and show the payline number text
-                const paylineNumText = this.paylineNumberTexts[paylineIndex];
-
-                // Determine the starting row for this payline to group labels
-                const startingRow = this.paylines[paylineIndex][0];
-
-                // Calculate how many paylines already won from this starting row in this spin
-                let currentOffsetCount = this.activePaylineRowOffsets[startingRow] || 0;
-
-                // Adjust labelY based on offset count to prevent overlapping labels
-                const adjustedLabelY = this.paylineLabelYCoords[startingRow] + (currentOffsetCount * 30); // Increased offset to 30px for better separation
-
-                paylineNumText.x = this.reelSetStartX + -60; // Use fixed reelSetStartX and offset
-                paylineNumText.y = adjustedLabelY;
-                paylineNumText.setText((paylineIndex + 1).toString()); // Set the actual payline number text
-                paylineNumText.setVisible(true); // Make the text visible
-
-                // Increment the offset count for this row for the next potential overlapping payline
-                this.activePaylineRowOffsets[startingRow] = currentOffsetCount + 1;
-
-                // Add a temporary tween to scale the number text for a pop effect
-                this.tweens.add({
-                    targets: paylineNumText,
-                    scale: 1.2, // Scale up for a pop
-                    yoyo: true, // Scale back down
-                    duration: 150, // Quick animation
-                    repeat: 0 // Only scale once per display
-                });
-            }
-
-            /**
-             * @function clearPaylineHighlights
-             * @description Removes all active payline highlights and hides their numbers.
-             * Also stops all active symbol win animations.
-             */
-            clearPaylineHighlights() {
-                // Destroy all graphics objects used for payline highlights
-                this.activePaylineHighlights.forEach(graphic => graphic.destroy());
-                this.activePaylineHighlights = []; // Clear the array
-
-                // Hide all payline number text objects
-                this.paylineNumberTexts.forEach(text => text.setVisible(false));
-
-                // Crucially, stop all active win tweens (animations) on symbols
-                this.reels.forEach(reel => {
-                    reel.symbols.forEach(symbol => {
-                        if (symbol.winTweens) {
-                            symbol.winTweens.forEach(tween => {
-                                if (tween && tween.stop) { // Ensure tween object and its stop method exist
-                                    tween.stop();
-                                }
-                            });
-                            symbol.winTweens = []; // Clear the array
-                            symbol.scale = 1; // Explicitly reset symbol scale
-                            symbol.alpha = 1; // Explicitly reset symbol alpha
-                            // Recalculate and reset y position based on its original snapped grid position
-                            const originalSymbolIndex = reel.symbols.indexOf(symbol);
-                            symbol.y = (originalSymbolIndex - (this.totalSymbolsPerReel - this.numRows) / 2) * this.symbolSize + (this.symbolSize / 2);
-                        }
-                    });
-                });
-            }
-
-            /**
-             * @function showPaytable
-             * @description Displays the paytable modal and switches to the specified tab.
-             * Disables game interaction while the modal is open.
-             * @param {string} tabName - The ID of the tab content to show ('paytable' or 'info').
-             */
-            showPaytable(tabName) {
-                // Ensure Tone.js audio context starts on user interaction if not already running
-                if (Tone.context.state !== 'running') {
-                    Tone.start();
-                }
-                this.playClickSound(); // Play click sound
-                this.paytableModalOverlay.style.display = 'flex';
-                // Disable game UI interaction when modal is open
-                this.spinButtonPhaser.disableInteractive();
-                this.betDecreaseBtnPhaser.disableInteractive();
-                this.betIncreaseBtnPhaser.disableInteractive();
-                this.spinButtonPhaser.alpha = 0.5;
-                this.betDecreaseBtnPhaser.alpha = 0.5;
-                this.betIncreaseBtnPhaser.alpha = 0.5;
-
-                this.hamburgerMenu.style.pointerEvents = 'none'; // Keep HTML hamburger disabled when modal is open
-                this.infoButton.style.pointerEvents = 'none'; // Disable HTML info button during modal
-
-                // Switch to the requested tab
-                this.switchModalTab(tabName);
-            }
-
-            /**
-             * @function hidePaytable
-             * @description Hides the paytable modal.
-             * Re-enables game interaction after the modal is closed.
-             */
-            hidePaytable() {
-                this.playClickSound(); // Play click sound
-                this.paytableModalOverlay.style.display = 'none';
-                // Re-enable game UI interaction when modal is closed
-                this.spinButtonPhaser.setInteractive();
-                this.betDecreaseBtnPhaser.setInteractive();
-                this.betIncreaseBtnPhaser.setInteractive();
-                this.spinButtonPhaser.alpha = 1;
-                this.betDecreaseBtnPhaser.alpha = 1;
-                this.betIncreaseBtnPhaser.alpha = 1;
-
-                this.hamburgerMenu.style.pointerEvents = 'auto'; // Re-enable HTML hamburger
-                this.infoButton.style.pointerEvents = 'auto'; // Re-enable HTML info button
-            }
-
-            /**
-             * @function switchModalTab
-             * @description Switches the active tab within the paytable/info modal.
-             * @param {string} tabName - The ID of the tab content to activate ('paytable' or 'info').
-             */
-            switchModalTab(tabName) {
-                this.playClickSound(); // Play click sound when switching tabs
-
-                // Deactivate all tab buttons and content sections
-                this.paytableTabButton.classList.remove('active');
-                this.infoTabButton.classList.remove('active');
-                this.paytableContent.classList.remove('active');
-                this.infoContent.classList.remove('active');
-
-                // Activate the selected tab button and content section
-                if (tabName === 'paytable') {
-                    this.paytableTabButton.classList.add('active');
-                    this.paytableContent.classList.add('active');
-                } else if (tabName === 'info') {
-                    this.infoTabButton.classList.add('active');
-                    this.infoContent.classList.add('active');
-                }
-            }
-        }
-
-        // Phaser Game Configuration
-        const config = {
-            type: Phaser.AUTO, // Auto-detect renderer (WebGL / Canvas)
-            // Initial dimensions for the game world. The CSS will handle fitting it to the HTML container.
-            width: 800,
-            height: 600,
-            parent: 'phaser-game-container', // This is the ID of the HTML element where the canvas will be appended
-            scene: [GameScene], // Register the GameScene
-            scale: {
-                mode: Phaser.Scale.FIT, // Scale the game to fit within the parent container while maintaining aspect ratio
-                autoCenter: Phaser.Scale.CENTER_BOTH, // Center the game canvas horizontally and vertically
-                parent: 'phaser-game-container', // Specify the parent for FIT mode
-                width: 800, // Reference width for scaling calculations
-                height: 600 // Reference height for scaling calculations
-            },
-            transparent: true, // Make canvas background transparent to see HTML background
-            physics: {
-                default: 'arcade', // Use Arcade Physics for simple collision/overlap detection (though not heavily used here)
-                arcade: {
-                    debug: false
-                }
-            }
+        const constraints = {
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
         };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        videoTrack = stream.getVideoTracks()[0];
 
-        let game; // Declare game globally so it can be accessed by window.onload
-        window.onload = function() {
-            // Initialize Phaser game when the window has fully loaded
-            game = new Phaser.Game(config);
+        await video.play();
+        isCameraActive = true;
+        cameraOffMsg.style.display = 'none';
+        cameraStage.classList.add('active');
 
-            // Dynamically adjust canvas width/height to fit container.
-            // This is largely handled by Phaser.Scale.FIT and CSS 'width: 100% !important; height: auto !important;'
-            // but this listener provides an additional layer of responsiveness.
-            const gameContainer = document.getElementById('phaser-game-container');
-            if (gameContainer) {
-                const resizeGame = () => {
-                    const width = gameContainer.offsetWidth;
-                    const height = gameContainer.offsetHeight;
-                    if (game.canvas) {
-                        game.canvas.style.width = `${width}px`;
-                        game.canvas.style.height = `${height}px`;
-                    }
-                };
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        switchBtn.disabled = false;
 
-                window.addEventListener('resize', resizeGame);
-                // Initial resize call to set up canvas dimensions correctly on load
-                resizeGame();
-            }
-        };
-    </script>
-    <script>
-        // JavaScript for the Infographic's interactive elements and Chart.js
-        document.addEventListener('DOMContentLoaded', () => {
-            const symbolsData = {
-                'BALLOON': { emoji: '🎈', value: 2.5 },
-                'ICECREAM': { emoji: '🍦', value: 5 },
-                'TICKET': { emoji: '🎟️', value: 7.5 },
-                'FERRIS': { emoji: '🎡', value: 10 },
-                'COASTER': { emoji: '🎢', value: 12.5 },
-                'COTTON': { emoji: '🍬', value: 15 },
-                'WILD_HOUSE': { emoji: 'W', value: 20 }
-            };
+        // Initialize MediaPipe models (if not already)
+        if (!handLandmarker) await initMediaPipe();
 
-            const betInput = document.getElementById('currentBet');
-            const matchCountSelect = document.getElementById('matchCount');
-            const symbolTypeSelect = document.getElementById('symbolType');
-            const calculatedPayout = document.getElementById('calculatedPayout');
+        // Start processing loop
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        processVideo();
 
-            /**
-             * @function calculatePayout
-             * @description Calculates and displays the theoretical payout based on user input for the infographic.
-             */
-            const calculatePayout = () => {
-                const bet = parseFloat(betInput.value);
-                const matchCount = parseInt(matchCountSelect.value);
-                const symbolKey = symbolTypeSelect.value;
-                const baseValue = symbolsData[symbolKey].value;
+        setTrackingStatus(true, 'Tracking active');
+      } catch (err) {
+        console.error('Camera error:', err);
+        let msg = 'Camera access denied or not available.';
+        if (err.name === 'NotAllowedError') msg = 'Permission denied. Please allow camera access.';
+        else if (err.name === 'NotFoundError') msg = 'No camera device found.';
+        showError(msg);
+        setTrackingStatus(false, 'Camera error');
+      }
+    }
 
-                let overallMultiplier;
-                if (matchCount === 3) {
-                    overallMultiplier = 0.25;
-                } else if (matchCount === 4) {
-                    overallMultiplier = 0.5;
-                } else if (matchCount === 5) {
-                    overallMultiplier = 1.0;
-                } else {
-                    overallMultiplier = 0; // Should not happen with current options
-                }
+    function stopCamera() {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      isCameraActive = false;
+      cameraOffMsg.style.display = 'flex';
+      cameraStage.classList.remove('active');
 
-                const payout = baseValue * overallMultiplier * bet;
-                calculatedPayout.textContent = `$${payout.toFixed(2)}`;
-            };
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      switchBtn.disabled = true;
 
-            // Add event listeners to trigger payout calculation on input change
-            if (betInput) betInput.addEventListener('input', calculatePayout);
-            if (matchCountSelect) matchCountSelect.addEventListener('change', calculatePayout);
-            if (symbolTypeSelect) symbolTypeSelect.addEventListener('change', calculatePayout);
+      setTrackingStatus(false, 'Stopped');
+      // reset canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // reset finger count display
+      updateGestureDisplay(0);
+      updateFilterLabel('Natural');
+      // reset params
+      currentParams = { ...PRESETS[0] };
+      targetParams = { ...PRESETS[0] };
+    }
 
-            // Initial calculation on page load
-            if (betInput) calculatePayout(); // Only call if elements exist
+    async function switchCamera() {
+      if (!isCameraActive) return;
+      facingMode = (facingMode === 'user') ? 'environment' : 'user';
+      stopCamera();
+      // small delay to allow stop
+      setTimeout(() => startCamera(), 150);
+    }
 
-            // Setup for Chart.js visualization
-            const symbolValueChartCtx = document.getElementById('symbolValueChart');
-            // Check if context exists (it might not if element is hidden initially, though Chart.js handles this well)
-            if (symbolValueChartCtx) {
-                const chartLabels = Object.keys(symbolsData).map(key => {
-                    const symbol = symbolsData[key];
-                    const label = `${symbol.emoji} ${key.replace('_HOUSE', '')}`;
-                    const max_width = 16; // Max characters before wrapping
-                    if (label.length <= max_width) {
-                        return label;
-                    }
-                    // Logic to wrap long labels
-                    const words = label.split(' ');
-                    let lines = [];
-                    let currentLine = '';
-                    words.forEach(word => {
-                        if ((currentLine + ' ' + word).length > max_width && currentLine.length > 0) {
-                            lines.push(currentLine);
-                            currentLine = word;
-                        } else {
-                            currentLine += (currentLine.length === 0 ? '' : ' ') + word;
-                        }
-                    });
-                    lines.push(currentLine);
-                    return lines;
-                });
-                const chartValues = Object.values(symbolsData).map(symbol => symbol.value);
+    // ---------- MEDIAPIPE INITIALIZATION ----------
+    async function initMediaPipe() {
+      try {
+        const filesetResolver = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm"
+        );
 
-                new Chart(symbolValueChartCtx.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: chartLabels,
-                        datasets: [{
-                            label: 'Full Payout Value (x Bet)',
-                            data: chartValues,
-                            backgroundColor: ['#A3C1AD', '#C79A7E', '#8B5F4A', '#003f5c', '#58508d', '#bc5090', '#ff6361'],
-                            borderColor: '#ffffff',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }, // Hide legend
-                            tooltip: {
-                                callbacks: {
-                                    title: function(tooltipItems) {
-                                        const item = tooltipItems[0];
-                                        let label = item.chart.data.labels[item.dataIndex];
-                                        if (Array.isArray(label)) {
-                                            return label.join(' '); // Join wrapped lines for tooltip
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                ticks: {
-                                    color: '#333333',
-                                    font: {
-                                        family: "'Inter', sans-serif",
-                                        size: 12
-                                    }
-                                },
-                                grid: {
-                                    display: false // Hide x-axis grid lines
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    color: '#333333',
-                                    font: {
-                                        family: "'Inter', sans-serif",
-                                        size: 12
-                                    }
-                                },
-                                grid: {
-                                    color: '#e5e7eb' // Light grid lines for y-axis
-                                }
-                            }
-                        }
-                    }
-                });
-            } else {
-                console.warn("Chart canvas element not found. Chart will not be rendered.");
-            }
+        // Hand Landmarker (for gestures)
+        handLandmarker = await HandLandmarker.createFromOptions(filesetResolver, {
+          baseOptions: {
+            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+            delegate: "GPU"
+          },
+          runningMode: "VIDEO",
+          numHands: 2,
+          minHandDetectionConfidence: 0.6,
+          minHandPresenceConfidence: 0.6,
+          minTrackingConfidence: 0.6,
         });
-    </script>
+
+        // Face Landmarker (for face region)
+        faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+          baseOptions: {
+            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+            delegate: "GPU"
+          },
+          runningMode: "VIDEO",
+          numFaces: 1,
+          minFaceDetectionConfidence: 0.5,
+          minFacePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+
+        console.log('MediaPipe models loaded');
+      } catch (err) {
+        console.error('MediaPipe init failed:', err);
+        showError('Failed to load AI models. Some features may not work.');
+      }
+    }
+
+    // ---------- FINGER COUNTING (from hand landmarks) ----------
+    function countRaisedFingers(landmarks) {
+      // landmarks: array of 21 {x, y, z} normalized
+      if (!landmarks || landmarks.length < 21) return 0;
+
+      // Finger tip and pip indices
+      const tipIdx = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky
+      const pipIdx = [3, 6, 10, 14, 18]; // thumb ip, index pip, etc.
+
+      let count = 0;
+
+      // Thumb: check distance from tip to MCP (or use angle) — simpler: x/y relation
+      // We'll use a distance heuristic between tip and MCP
+      const thumbTip = landmarks[4];
+      const thumbMcp = landmarks[2];
+      const thumbDist = Math.hypot(thumbTip.x - thumbMcp.x, thumbTip.y - thumbMcp.y);
+      // Also check if thumb is extended away from palm
+      const indexMcp = landmarks[5];
+      const thumbIndexDist = Math.hypot(thumbTip.x - indexMcp.x, thumbTip.y - indexMcp.y);
+      if (thumbIndexDist > 0.1 && thumbDist > 0.05) count++; // raised thumb
+
+      // Other four fingers: tip.y < pip.y indicates raised (in image coords, y increases downward)
+      for (let i = 1; i < 5; i++) {
+        const tip = landmarks[tipIdx[i]];
+        const pip = landmarks[pipIdx[i]];
+        if (tip.y < pip.y - 0.02) { // slightly raised
+          count++;
+        }
+      }
+
+      return Math.min(count, 5);
+    }
+
+    // ---------- FILTER APPLICATION (to canvas) ----------
+    function applyFiltersToCanvas() {
+      const w = canvas.width;
+      const h = canvas.height;
+      if (w === 0 || h === 0) return;
+
+      // 1. Draw video frame
+      ctx.drawImage(video, 0, 0, w, h);
+
+      // 2. Get image data for pixel manipulation
+      let imageData = ctx.getImageData(0, 0, w, h);
+      const data = imageData.data;
+
+      // 3. Interpolate current params toward target
+      const lerpFactor = 0.12;
+      currentParams.brightness += (targetParams.brightness - currentParams.brightness) * lerpFactor;
+      currentParams.contrast += (targetParams.contrast - currentParams.contrast) * lerpFactor;
+      currentParams.saturation += (targetParams.saturation - currentParams.saturation) * lerpFactor;
+      currentParams.warmth += (targetParams.warmth - currentParams.warmth) * lerpFactor;
+      currentParams.glowIntensity += (targetParams.glowIntensity - currentParams.glowIntensity) * lerpFactor;
+      currentParams.tintStrength += (targetParams.tintStrength - currentParams.tintStrength) * lerpFactor;
+
+      // Apply master intensity (scale effect strength)
+      const intensity = Math.max(0.1, masterIntensity);
+      const bright = 1.0 + (currentParams.brightness - 1.0) * intensity;
+      const contrast = 1.0 + (currentParams.contrast - 1.0) * intensity;
+      const sat = 1.0 + (currentParams.saturation - 1.0) * intensity;
+      const warm = currentParams.warmth * intensity;
+      const glow = currentParams.glowIntensity * intensity;
+      const tint = currentParams.tintStrength * intensity;
+
+      // 4. Apply pixel transformations
+      for (let i = 0; i < data.length; i += 4) {
+        let r = data[i];
+        let g = data[i + 1];
+        let b = data[i + 2];
+
+        // Brightness
+        r *= bright;
+        g *= bright;
+        b *= bright;
+
+        // Contrast
+        r = ((r / 255 - 0.5) * contrast + 0.5) * 255;
+        g = ((g / 255 - 0.5) * contrast + 0.5) * 255;
+        b = ((b / 255 - 0.5) * contrast + 0.5) * 255;
+
+        // Saturation (simple)
+        const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        r = gray + (r - gray) * sat;
+        g = gray + (g - gray) * sat;
+        b = gray + (b - gray) * sat;
+
+        // Warmth / cool tint
+        if (warm > 0) {
+          r += warm * 30 * intensity;
+          b -= warm * 15 * intensity;
+        } else if (warm < 0) {
+          b += Math.abs(warm) * 30 * intensity;
+          r -= Math.abs(warm) * 15 * intensity;
+        }
+
+        // Additional tint (purple/blue for cinematic)
+        if (tint > 0.01) {
+          r += tint * 10;
+          g += tint * 5;
+          b += tint * 25;
+        }
+
+        // Clamp
+        data[i] = Math.min(255, Math.max(0, r));
+        data[i + 1] = Math.min(255, Math.max(0, g));
+        data[i + 2] = Math.min(255, Math.max(0, b));
+      }
+
+      // 5. Put back
+      ctx.putImageData(imageData, 0, 0);
+
+      // 6. Glow effect (using canvas blur on face region if possible)
+      if (glow > 0.05 && faceRegion.detected) {
+        // draw a soft blurred highlight over face region
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = glow * 0.5;
+        ctx.filter = `blur(${Math.round(12 * glow)}px)`;
+        // Use face region as circle/ellipse
+        const fx = faceRegion.x * w;
+        const fy = faceRegion.y * h;
+        const fw = faceRegion.w * w;
+        const fh = faceRegion.h * h;
+        const grd = ctx.createRadialGradient(fx + fw/2, fy + fh/2, 10, fx + fw/2, fy + fh/2, Math.max(fw, fh)/1.5);
+        grd.addColorStop(0, `rgba(255, 240, 200, ${0.6 * glow})`);
+        grd.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.ellipse(fx + fw/2, fy + fh/2, fw/1.8, fh/1.8, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // ---------- PROCESS VIDEO FRAME ----------
+    async function processVideo() {
+      if (!isCameraActive || !video.videoWidth) {
+        animationFrameId = requestAnimationFrame(processVideo);
+        return;
+      }
+
+      const now = performance.now();
+
+      // Resize canvas to match video
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+
+      // Run detection only if video time changed
+      if (video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+
+        // --- Hand detection ---
+        if (handLandmarker) {
+          const handResults = handLandmarker.detectForVideo(video, now);
+          if (handResults && handResults.landmarks && handResults.landmarks.length > 0) {
+            // Use first hand for gesture (can be extended to average)
+            const landmarks = handResults.landmarks[0];
+            rawFingerCount = countRaisedFingers(landmarks);
+
+            // Get hand Y position (average of wrist and middle finger MCP)
+            const wrist = landmarks[0];
+            const middleMcp = landmarks[9];
+            handY = (wrist.y + middleMcp.y) / 2;
+            handActive = true;
+
+            // Debounce gesture change
+            if (rawFingerCount !== currentFingerCount) {
+              if (now - lastGestureChangeTime > GESTURE_DEBOUNCE_MS) {
+                currentFingerCount = rawFingerCount;
+                lastGestureChangeTime = now;
+                // Update target params based on new gesture
+                const preset = PRESETS[currentFingerCount] || PRESETS[0];
+                targetParams = { ...preset };
+                // Apply hand position modulation for intensity (if gesture is 1-5)
+                if (currentFingerCount > 0 && handActive) {
+                  // Hand higher (smaller y) => higher glow; lower => lower
+                  const heightFactor = Math.max(0, Math.min(1, 1 - handY * 1.2));
+                  // Add glow boost based on hand height
+                  targetParams.glowIntensity = Math.min(1.0, targetParams.glowIntensity + heightFactor * 0.3);
+                }
+                updateGestureDisplay(currentFingerCount);
+                updateFilterLabel(preset.name);
+              }
+            } else {
+              // still same count — update display
+              updateGestureDisplay(currentFingerCount);
+            }
+          } else {
+            // No hand detected — slowly return to natural (0)
+            if (currentFingerCount !== 0) {
+              if (now - lastGestureChangeTime > 400) {
+                currentFingerCount = 0;
+                lastGestureChangeTime = now;
+                targetParams = { ...PRESETS[0] };
+                updateGestureDisplay(0);
+                updateFilterLabel('Natural');
+              }
+            }
+            handActive = false;
+          }
+        }
+
+        // --- Face detection for region ---
+        if (faceLandmarker) {
+          const faceResults = faceLandmarker.detectForVideo(video, now);
+          if (faceResults && faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0) {
+            const landmarks = faceResults.faceLandmarks[0];
+            // Compute bounding box from landmarks
+            let minX = 1, minY = 1, maxX = 0, maxY = 0;
+            for (const lm of landmarks) {
+              if (lm.x < minX) minX = lm.x;
+              if (lm.y < minY) minY = lm.y;
+              if (lm.x > maxX) maxX = lm.x;
+              if (lm.y > maxY) maxY = lm.y;
+            }
+            // Expand slightly
+            const pad = 0.08;
+            faceRegion = {
+              x: Math.max(0, minX - pad),
+              y: Math.max(0, minY - pad),
+              w: Math.min(1, maxX + pad) - Math.max(0, minX - pad),
+              h: Math.min(1, maxY + pad) - Math.max(0, minY - pad),
+              detected: true
+            };
+          } else {
+            faceRegion.detected = false;
+          }
+        }
+
+        // Apply filters
+        applyFiltersToCanvas();
+      }
+
+      animationFrameId = requestAnimationFrame(processVideo);
+    }
+
+    // ---------- EVENT LISTENERS ----------
+    startBtn.addEventListener('click', startCamera);
+    stopBtn.addEventListener('click', stopCamera);
+    switchBtn.addEventListener('click', switchCamera);
+
+    intensitySlider.addEventListener('input', (e) => {
+      masterIntensity = parseFloat(e.target.value);
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    });
+
+    // Check for mediaDevices support
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showError('Your browser does not support camera access. Please use a modern browser.');
+      startBtn.disabled = true;
+    }
+
+    // Initialize UI
+    updateGestureDisplay(0);
+    updateFilterLabel('Natural');
+    setTrackingStatus(false, 'Ready');
+    // Set initial target params to natural
+    targetParams = { ...PRESETS[0] };
+    currentParams = { ...PRESETS[0] };
+
+    // Pre-load MediaPipe in background (optional, but we do on start)
+    // For smoother experience, start loading now
+    (async () => {
+      try {
+        // lazy init when camera starts, but we can preload
+        // to avoid delay, we init on startCamera
+      } catch (e) {}
+    })();
+
+    console.log('GestureLens ready — click Start Camera');
+  </script>
 </body>
 </html>
