@@ -418,7 +418,7 @@
         </svg>
       </button>
 
-      <!-- Enter / Exit fullscreen -->
+      <!-- Enter / Exit fullscreen (manual only) -->
       <button
         class="control-btn"
         id="fsToggleBtn"
@@ -452,9 +452,9 @@
   <!-- ============================================
        Vanilla JS
        - Big Play button starts video + MP3 together,
-         resets both, hides button, requests fullscreen
+         resets both, hides button (NO auto fullscreen)
        - Loop sync via "ended" (no reliance on native loop)
-       - Corner controls: pause/play, mute/unmute, fullscreen
+       - Corner controls: pause/play, mute/unmute, fullscreen (manual)
        - visibilitychange: pause/resume both after start
        - Fallback detection
        ============================================ -->
@@ -534,7 +534,9 @@
       });
 
       /* ---------- 4. BIG PLAY BUTTON ---------- */
-      // One handler: mute video, reset times, start both, fade button, fullscreen.
+      // One handler: mute video, reset times, start both, fade button.
+      // NOTE: no automatic fullscreen here — the user can toggle it
+      // manually via the corner fullscreen button.
       bigPlayBtn.addEventListener("click", function (e) {
         e.stopPropagation();
 
@@ -558,16 +560,13 @@
         // Fade the big Play button out smoothly.
         bigPlayBtn.classList.add("is-hidden");
 
-        // Request fullscreen (with webkit fallback; safe no-op on iOS).
-        requestFullscreenSafe(section);
-
         hasStarted = true;
         userPaused = false;
         updatePlayPauseUI();
         showControlsTemporarily();
       });
 
-      /* ---------- 5. Fullscreen helpers ---------- */
+      /* ---------- 5. Fullscreen helpers (manual only) ---------- */
       function requestFullscreenSafe(el) {
         const fn = el.requestFullscreen
           || el.webkitRequestFullscreen
@@ -612,6 +611,7 @@
         }
       }
 
+      // Fullscreen toggle — runs ONLY when the user clicks the button.
       fsToggleBtn.addEventListener("click", function (e) {
         e.stopPropagation();
         if (isFullscreen()) exitFullscreenSafe();
