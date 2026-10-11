@@ -34,119 +34,175 @@
       padding: 1.5rem;
       color: #e6e8eb;
       -webkit-font-smoothing: antialiased;
-      position: relative;              /* keeps your content above the fixed bg */
-      z-index: 1;
     }
 
     /* ============================================
-       FULL-SCREEN BACKGROUND VIDEO LAYER
-       - Fixed behind everything (z-index: -1)
-       - Mobile: object-fit: cover (fills viewport)
-       - Desktop: sharp centered (contain) over a blurred, darkened copy
+       FULL-SCREEN VIDEO SECTION
+       100vw × 100dvh, fixed visuals inside
        ============================================ */
-    .bg-video {
-      position: fixed;
-      inset: 0;
+    .fullscreen-video-section {
+      position: relative;
       width: 100vw;
-      height: 100vh;
       height: 100dvh;
+      margin: 0;
+      padding: 0;
       overflow: hidden;
-      z-index: -1;
       background: #000;
-      pointer-events: none;            /* never blocks clicks */
+      isolation: isolate;
+      /* pulls the section out of the body's flex/padding flow */
+      margin-left: calc(50% - 50vw);
+      margin-right: calc(50% - 50vw);
+      margin-top: -1.5rem;
+      margin-bottom: -1.5rem;
     }
 
     /* Both video layers share base positioning */
-    .bg-video video {
+    .fullscreen-video-section video {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       display: block;
       border: 0;
-      pointer-events: none;
+      pointer-events: none;            /* taps go to the overlay/controls */
     }
 
     /* Blurred, darkened "fill" copy — visible on desktop sides */
-    .bg-video .bg-fill {
+    .fs-fill {
       object-fit: cover;
       filter: blur(30px) brightness(0.4);
       transform: scale(1.08);          /* hides blur edges */
-      opacity: 0;                      /* only shown on wide screens */
+      opacity: 0;                      /* shown only on wide screens */
     }
 
-    /* Sharp centered copy — default for mobile */
-    .bg-video .bg-sharp {
-      object-fit: cover;               /* mobile: fill the screen */
+    /* Sharp centered copy — mobile fills screen; desktop contains */
+    .fs-sharp {
+      object-fit: cover;
+      z-index: 1;
     }
 
     /* Desktop: sharp vertical video centered over blurred fill */
     @media (min-width: 700px) {
-      .bg-video .bg-fill { opacity: 1; }
-      .bg-video .bg-sharp { object-fit: contain; }
+      .fs-fill { opacity: 1; }
+      .fs-sharp { object-fit: contain; }
     }
 
     /* Subtle dark gradient overlay so text stays readable */
-    .bg-overlay {
-      position: fixed;
+    .fs-overlay {
+      position: absolute;
       inset: 0;
-      z-index: -1;
+      z-index: 2;
       pointer-events: none;
       background:
-        linear-gradient(
-          to bottom,
-          rgba(0, 0, 0, 0.55) 0%,
-          rgba(0, 0, 0, 0.35) 45%,
-          rgba(0, 0, 0, 0.65) 100%
+        radial-gradient(
+          120% 80% at 50% 50%,
+          rgba(0, 0, 0, 0.15) 0%,
+          rgba(0, 0, 0, 0.55) 100%
         );
     }
 
     /* ============================================
-       EXISTING CONTENT — preserved as-is
-       (kept in the flow; now sits above the fixed bg)
+       BIG CENTERED PLAY BUTTON
+       Modern round, soft pulse / glow
        ============================================ */
-    .video-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 420px;
-      aspect-ratio: 9 / 16;
-      margin: 0 auto;
-      background: transparent;         /* let the bg video show through */
-      border-radius: 1.25rem;
-      box-shadow:
-        0 20px 35px -8px rgba(0, 0, 0, 0.8),
-        0 8px 18px -6px rgba(0, 0, 0, 0.6);
-      overflow: hidden;
-      isolation: isolate;
-    }
-
-    /* Keep the in-flow video hidden — the fixed bg video now does the work */
-    .video-wrapper video { display: none; }
-
-    /* Custom controls overlay */
-    .controls {
+    .big-play {
       position: absolute;
-      inset: auto 0 0 0;
-      display: flex;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6.5rem;
+      height: 6.5rem;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(20, 20, 25, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
       justify-content: center;
-      align-items: flex-end;
-      gap: 0.75rem;
-      padding: 1rem 1rem 1.25rem;
-      background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.7) 0%,
-        rgba(0, 0, 0, 0.35) 45%,
-        transparent 100%
-      );
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      pointer-events: none;
-      z-index: 2;
+      cursor: pointer;
+      padding: 0;
+      z-index: 5;
+      box-shadow:
+        0 0 0 0 rgba(255, 255, 255, 0.28),
+        0 15px 40px rgba(0, 0, 0, 0.55);
+      transition:
+        opacity 0.35s ease,
+        transform 0.35s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      animation: bigPlayPulse 2.4s ease-out infinite;
     }
 
-    .video-wrapper:hover .controls,
-    .video-wrapper.controls-visible .controls {
+    .big-play:hover,
+    .big-play:focus-visible {
+      background: rgba(40, 40, 50, 0.9);
+      border-color: rgba(255, 255, 255, 0.45);
+      outline: none;
+    }
+
+    .big-play:active {
+      transform: translate(-50%, -50%) scale(0.96);
+    }
+
+    .big-play svg {
+      width: 2.8rem;
+      height: 2.8rem;
+      fill: currentColor;
+      margin-left: 6px;                /* optical centering for play triangle */
+      pointer-events: none;
+    }
+
+    /* Smooth fade-out state once playback starts */
+    .big-play.is-hidden {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.9);
+      pointer-events: none;
+      animation: none;
+    }
+
+    /* Soft pulse glow */
+    @keyframes bigPlayPulse {
+      0% {
+        box-shadow:
+          0 0 0 0 rgba(255, 255, 255, 0.28),
+          0 15px 40px rgba(0, 0, 0, 0.55);
+      }
+      70% {
+        box-shadow:
+          0 0 0 28px rgba(255, 255, 255, 0),
+          0 15px 40px rgba(0, 0, 0, 0.55);
+      }
+      100% {
+        box-shadow:
+          0 0 0 0 rgba(255, 255, 255, 0),
+          0 15px 40px rgba(0, 0, 0, 0.55);
+      }
+    }
+
+    /* ============================================
+       CORNER CONTROLS (appear on tap/hover, auto-hide)
+       ============================================ */
+    .corner-controls {
+      position: absolute;
+      right: 1rem;
+      bottom: 1rem;
+      display: flex;
+      gap: 0.6rem;
+      z-index: 6;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      pointer-events: none;
+    }
+
+    .fullscreen-video-section.controls-visible .corner-controls,
+    .fullscreen-video-section:hover .corner-controls {
       opacity: 1;
+      transform: translateY(0);
       pointer-events: auto;
     }
 
@@ -159,8 +215,8 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-radius: 3rem;
-      width: 3.25rem;
-      height: 3.25rem;
+      width: 3rem;
+      height: 3rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -184,17 +240,21 @@
       outline: none;
     }
 
-    .control-btn:active { transform: scale(0.96); }
+    .control-btn:active {
+      transform: scale(0.96);
+    }
 
     .control-btn svg {
-      width: 1.6rem;
-      height: 1.6rem;
+      width: 1.4rem;
+      height: 1.4rem;
       fill: currentColor;
       display: block;
       pointer-events: none;
     }
 
-    .hidden { display: none !important; }
+    .hidden {
+      display: none !important;
+    }
 
     /* ============================================
        Fallback message
@@ -219,88 +279,14 @@
       z-index: 7;
     }
 
-    .video-wrapper.fallback-active .controls { display: none; }
-    .video-wrapper.fallback-active .video-fallback { display: block; }
-
-    /* ============================================
-       "Tap anywhere for sound" hint
-       - Small, elegant, bottom-center
-       - Fades out as soon as the song starts
-       ============================================ */
-    .sound-hint {
-      position: fixed;
-      left: 50%;
-      bottom: 1.25rem;
-      transform: translateX(-50%);
-      z-index: 5;
-      padding: 0.55rem 1rem;
-      border-radius: 3rem;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background: rgba(20, 20, 25, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      color: #f0f0f5;
-      font-size: 0.85rem;
-      letter-spacing: 0.02em;
-      font-weight: 500;
-      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
-      pointer-events: none;
-      opacity: 1;
-      transition: opacity 0.35s ease, transform 0.35s ease;
-      white-space: nowrap;
+    .fullscreen-video-section.fallback-active video,
+    .fullscreen-video-section.fallback-active .big-play,
+    .fullscreen-video-section.fallback-active .corner-controls {
+      display: none;
     }
 
-    /* Faded state once the audio begins */
-    .sound-hint.fade-out {
-      opacity: 0;
-      transform: translateX(-50%) translateY(6px);
-    }
-
-    /* ============================================
-       Corner mute/unmute button (controls MP3)
-       ============================================ */
-    .corner-mute {
-      position: fixed;
-      right: 1rem;
-      bottom: 1rem;
-      z-index: 5;
-      width: 3rem;
-      height: 3rem;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(20, 20, 25, 0.65);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      color: #f0f0f5;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      padding: 0;
-      font-size: 0;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-      transition: background 0.15s ease, transform 0.15s ease,
-        border-color 0.15s ease;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-
-    .corner-mute:hover,
-    .corner-mute:focus-visible {
-      background: rgba(40, 40, 50, 0.9);
-      border-color: rgba(255, 255, 255, 0.3);
-      transform: scale(1.05);
-      outline: none;
-    }
-
-    .corner-mute:active { transform: scale(0.96); }
-
-    .corner-mute svg {
-      width: 1.4rem;
-      height: 1.4rem;
-      fill: currentColor;
+    .fullscreen-video-section.fallback-active .video-fallback {
       display: block;
-      pointer-events: none;
     }
 
     /* ============================================
@@ -308,41 +294,36 @@
        ============================================ */
     @media (max-width: 480px) {
       body { padding: 0.75rem; }
-      .video-wrapper { border-radius: 1rem; }
-      .controls {
-        gap: 0.5rem;
-        padding: 0.75rem 0.75rem 1rem;
+      .big-play {
+        width: 5.25rem;
+        height: 5.25rem;
       }
-      .control-btn {
-        width: 2.85rem;
-        height: 2.85rem;
+      .big-play svg {
+        width: 2.2rem;
+        height: 2.2rem;
+        margin-left: 5px;
       }
-      .control-btn svg {
-        width: 1.4rem;
-        height: 1.4rem;
-      }
-      .corner-mute {
-        width: 2.75rem;
-        height: 2.75rem;
+      .corner-controls {
         right: 0.75rem;
         bottom: 0.75rem;
+        gap: 0.5rem;
       }
-      .corner-mute svg {
+      .control-btn {
+        width: 2.75rem;
+        height: 2.75rem;
+      }
+      .control-btn svg {
         width: 1.25rem;
         height: 1.25rem;
-      }
-      .sound-hint {
-        font-size: 0.8rem;
-        bottom: 4.25rem;             /* sit above the corner button */
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
+      .big-play,
       .control-btn,
-      .controls,
-      .corner-mute,
-      .sound-hint,
-      .bg-video video {
+      .corner-controls,
+      .fullscreen-video-section video {
+        animation: none !important;
         transition: none;
       }
     }
@@ -351,21 +332,21 @@
 <body>
 
   <!-- ============================================
-       FULL-SCREEN BACKGROUND VIDEO LAYER
+       FULL-SCREEN VIDEO SECTION
        - Blurred, darkened fill (desktop sides)
-       - Sharp centered copy (object-fit: contain on desktop,
-         cover on mobile)
-       - Silent: the MP3 is the actual sound
+       - Sharp centered copy (contain on desktop, cover on mobile)
+       - Big centered Play button over the paused first frame
+       - Corner controls appear on tap/hover
        ============================================ -->
-  <div class="bg-video" aria-hidden="true">
-    <!-- Blurred fill copy (decorative, muted) -->
+  <section class="fullscreen-video-section" id="fsVideoSection" aria-label="Full-screen video player">
+
+    <!-- Blurred fill copy (decorative, muted, silent) -->
     <video
-      class="bg-fill"
+      class="fs-fill"
+      id="fillVideo"
       muted
       playsinline
       preload="auto"
-      autoplay
-      loop
     >
       <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
     </video>
@@ -373,64 +354,41 @@
     <!-- Sharp centered copy (the one JS syncs with the MP3) -->
     <video
       id="myVideo"
-      class="bg-sharp"
+      class="fs-sharp"
       muted
       playsinline
       preload="auto"
-      autoplay
-      loop
     >
       <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
       <p>Your browser does not support HTML5 video. Please upgrade to a modern browser.</p>
     </video>
-  </div>
 
-  <!-- Subtle dark gradient overlay for text readability -->
-  <div class="bg-overlay" aria-hidden="true"></div>
+    <!-- Subtle gradient overlay for text readability -->
+    <div class="fs-overlay" aria-hidden="true"></div>
 
-  <!-- Hidden MP3: the actual sound source -->
-  <audio
-    id="myAudio"
-    preload="auto"
-    loop
-    src="SaveTik.io_7687661810236869909.mp3"
-  ></audio>
+    <!-- Big centered Play button -->
+    <button
+      class="big-play"
+      id="bigPlayBtn"
+      type="button"
+      aria-label="Play video with sound"
+      title="Play"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
+      </svg>
+    </button>
 
-  <!-- "Tap anywhere for sound" hint (fades out when audio starts) -->
-  <div class="sound-hint" id="soundHint" role="status" aria-live="polite">
-    Tap anywhere for sound
-  </div>
-
-  <!-- Corner mute/unmute button (controls the MP3) -->
-  <button
-    class="corner-mute"
-    id="cornerMuteBtn"
-    type="button"
-    aria-label="Mute audio"
-    title="Mute"
-  >
-    <svg id="cornerMutedIcon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
-      <line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-      <line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-    </svg>
-    <svg id="cornerUnmutedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
-      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path>
-      <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
-    </svg>
-  </button>
-
-  <!-- ============================================
-       EXISTING CONTENT — untouched
-       (your original wrapper is preserved as a content
-       container; its inner <video> is now hidden since the
-       full-screen background handles the visuals)
-       ============================================ -->
-  <div class="video-wrapper" id="videoWrapper">
-    <!-- Legacy controls are hidden with the wrapper video -->
-    <div class="controls" id="customControls">
-      <button class="control-btn" id="playPauseBtn" type="button" aria-label="Pause" title="Pause">
+    <!-- Corner controls: pause/play, mute/unmute, fullscreen -->
+    <div class="corner-controls" id="cornerControls">
+      <!-- Play / Pause -->
+      <button
+        class="control-btn"
+        id="playPauseBtn"
+        type="button"
+        aria-label="Pause"
+        title="Pause"
+      >
         <svg id="pauseIcon" viewBox="0 0 24 24" aria-hidden="true">
           <rect x="6" y="4" width="4" height="16" rx="1"></rect>
           <rect x="14" y="4" width="4" height="16" rx="1"></rect>
@@ -439,19 +397,65 @@
           <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
         </svg>
       </button>
+
+      <!-- Mute / Unmute -->
+      <button
+        class="control-btn"
+        id="muteBtn"
+        type="button"
+        aria-label="Mute audio"
+        title="Mute"
+      >
+        <svg id="mutedIcon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
+          <line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+          <line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+        </svg>
+        <svg id="unmutedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path>
+          <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
+        </svg>
+      </button>
+
+      <!-- Enter / Exit fullscreen -->
+      <button
+        class="control-btn"
+        id="fsToggleBtn"
+        type="button"
+        aria-label="Enter fullscreen"
+        title="Fullscreen"
+      >
+        <svg id="fsEnterIcon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"></path>
+        </svg>
+        <svg id="fsExitIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10 4v4H6v2h6V4h-2zm4 0h-2v6h6V8h-4V4zM4 14v2h4v4h2v-6H4zm10 0v6h2v-4h4v-2h-6z"></path>
+        </svg>
+      </button>
     </div>
+
+    <!-- Fallback message -->
     <div class="video-fallback" id="fallbackMsg">
       ⚠️ Your browser cannot play this video or audio.<br />
       Please try a modern browser or download the files.
     </div>
-  </div>
+  </section>
+
+  <!-- Hidden MP3: the only sound source -->
+  <audio
+    id="myAudio"
+    preload="auto"
+    src="SaveTik.io_7687661810236869909.mp3"
+  ></audio>
 
   <!-- ============================================
        Vanilla JS
-       - Autoplay video + attempt audio.play()
-       - First-interaction fallback unlocks audio
-       - Loop sync: restart MP3 with the video, forever
-       - Corner mute button + visibilitychange pause/resume
+       - Big Play button starts video + MP3 together,
+         resets both, hides button, requests fullscreen
+       - Loop sync via "ended" (no reliance on native loop)
+       - Corner controls: pause/play, mute/unmute, fullscreen
+       - visibilitychange: pause/resume both after start
        - Fallback detection
        ============================================ -->
   <script>
@@ -459,151 +463,288 @@
       "use strict";
 
       /* ---------- DOM references ---------- */
-      const wrapper = document.getElementById("videoWrapper");
-      const video = document.getElementById("myVideo");     // sharp bg video
-      const fillVideo = document.querySelector(".bg-fill"); // blurred bg video
+      const section = document.getElementById("fsVideoSection");
+      const video = document.getElementById("myVideo");       // sharp copy
+      const fillVideo = document.getElementById("fillVideo"); // blurred copy
       const audio = document.getElementById("myAudio");
-      const soundHint = document.getElementById("soundHint");
-      const cornerMuteBtn = document.getElementById("cornerMuteBtn");
-      const cornerMutedIcon = document.getElementById("cornerMutedIcon");
-      const cornerUnmutedIcon = document.getElementById("cornerUnmutedIcon");
+      const bigPlayBtn = document.getElementById("bigPlayBtn");
+      const playPauseBtn = document.getElementById("playPauseBtn");
+      const muteBtn = document.getElementById("muteBtn");
+      const fsToggleBtn = document.getElementById("fsToggleBtn");
+      const pauseIcon = document.getElementById("pauseIcon");
+      const playIcon = document.getElementById("playIcon");
+      const mutedIcon = document.getElementById("mutedIcon");
+      const unmutedIcon = document.getElementById("unmutedIcon");
+      const fsEnterIcon = document.getElementById("fsEnterIcon");
+      const fsExitIcon = document.getElementById("fsExitIcon");
 
-      let started = false;      // true once audio has successfully begun
-      let userPaused = false;   // true if user explicitly paused
+      let hasStarted = false;    // becomes true after first Play press
+      let userPaused = false;    // true when user explicitly paused
 
       /* ---------- 1. Fallback detection ---------- */
       video.addEventListener("error", function () {
-        wrapper.classList.add("fallback-active");
+        section.classList.add("fallback-active");
       });
       audio.addEventListener("error", function () {
-        wrapper.classList.add("fallback-active");
+        section.classList.add("fallback-active");
       });
       if (video.canPlayType && video.canPlayType("video/mp4") === "") {
-        wrapper.classList.add("fallback-active");
+        section.classList.add("fallback-active");
       }
 
-      /* ---------- 2. Helpers: play / pause video + audio ---------- */
+      /* ---------- 2. Play / pause helpers ---------- */
       function playBoth() {
-        const v = video.play();
-        const a = audio.play();
-        if (v && v.catch) v.catch(function () {});
-        if (a && a.catch) a.catch(function () {});
+        // Promise.all so both start at the same tick (best effort)
+        return Promise.all([
+          video.play().catch(function () {}),
+          audio.play().catch(function () {})
+        ]);
       }
 
       function pauseBoth() {
         video.pause();
         audio.pause();
+        if (fillVideo && !fillVideo.paused) fillVideo.pause();
       }
 
-      /* ---------- 3. Autoplay the video (muted) immediately ---------- */
-      // The muted background video should start on load with no gesture.
-      function startVideo() {
-        const p = video.play();
-        if (p && p.catch) p.catch(function () { /* some browsers still block */ });
-      }
-      startVideo();
-
-      /* ---------- 4. Try to start the MP3 on load ---------- */
-      // If blocked by autoplay policy, we'll unlock on the first user gesture.
-      let audioUnlocked = false;
-      function tryStartAudio() {
-        if (audioUnlocked) return;
-        // Start audio in sync with the video's current time
-        try { audio.currentTime = video.currentTime || 0; } catch (e) {}
-        const p = audio.play();
-        if (p && typeof p.then === "function") {
-          p.then(function () {
-            audioUnlocked = true;
-            started = true;
-            soundHint.classList.add("fade-out");
-          }).catch(function () {
-            /* blocked — wait for a user gesture */
-          });
-        }
-      }
-      tryStartAudio();
-
-      /* ---------- 5. First-interaction fallback (unlock audio) ---------- */
-      const unlockEvents = ["pointerdown", "touchstart", "click", "keydown", "wheel", "scroll"];
-      function unlockAudio() {
-        if (audioUnlocked) return;
-        tryStartAudio();
-        if (audioUnlocked) {
-          unlockEvents.forEach(function (ev) {
-            window.removeEventListener(ev, unlockAudio, { passive: true });
-          });
-        }
-      }
-      unlockEvents.forEach(function (ev) {
-        window.addEventListener(ev, unlockAudio, { passive: true });
-      });
-
-      /* ---------- 6. Loop sync: restart MP3 with the video, forever ---------- */
-      // We don't rely on the native `loop` alone — on `ended` we reset both.
+      /* ---------- 3. Loop sync: restart MP3 with the video ---------- */
+      // Do NOT rely on native loop. On "ended": reset both and play again.
       video.addEventListener("ended", function () {
         try { video.currentTime = 0; } catch (e) {}
         try { audio.currentTime = 0; } catch (e) {}
-        if (!userPaused) playBoth();
+        if (hasStarted && !userPaused) playBoth();
       });
 
-      // Safety net: keep the MP3 locked to the video's time on each loop.
+      // Keep the MP3 locked to the video; if drift > 0.35s, resync.
       video.addEventListener("timeupdate", function () {
-        if (!audioUnlocked || video.paused) return;
+        if (!hasStarted || video.paused) return;
         const drift = Math.abs(video.currentTime - audio.currentTime);
         if (drift > 0.35) {
           try { audio.currentTime = video.currentTime; } catch (e) {}
         }
       });
 
-      /* ---------- 7. Corner mute/unmute (controls the MP3) ---------- */
-      function updateMuteUI() {
-        if (audio.muted) {
-          cornerMutedIcon.classList.remove("hidden");
-          cornerUnmutedIcon.classList.add("hidden");
-          cornerMuteBtn.setAttribute("aria-label", "Unmute audio");
-          cornerMuteBtn.title = "Unmute";
-        } else {
-          cornerMutedIcon.classList.add("hidden");
-          cornerUnmutedIcon.classList.remove("hidden");
-          cornerMuteBtn.setAttribute("aria-label", "Mute audio");
-          cornerMuteBtn.title = "Mute";
+      // Keep the blurred fill in sync with the sharp copy.
+      video.addEventListener("timeupdate", function () {
+        if (!fillVideo || fillVideo.paused) return;
+        const d = Math.abs(fillVideo.currentTime - video.currentTime);
+        if (d > 0.5) {
+          try { fillVideo.currentTime = video.currentTime; } catch (e) {}
+        }
+      });
+
+      /* ---------- 4. BIG PLAY BUTTON ---------- */
+      // One handler: mute video, reset times, start both, fade button, fullscreen.
+      bigPlayBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+
+        // Video keeps its own sound off — MP3 is the audio.
+        video.muted = true;
+
+        // Reset both to the beginning for a clean start.
+        try { video.currentTime = 0; } catch (err) {}
+        try { audio.currentTime = 0; } catch (err) {}
+
+        // Start both in the SAME handler (user gesture) → audio allowed.
+        playBoth();
+
+        // Also start the blurred fill for desktop backgrounds.
+        if (fillVideo) {
+          try { fillVideo.currentTime = 0; } catch (err) {}
+          const fp = fillVideo.play();
+          if (fp && fp.catch) fp.catch(function () {});
+        }
+
+        // Fade the big Play button out smoothly.
+        bigPlayBtn.classList.add("is-hidden");
+
+        // Request fullscreen (with webkit fallback; safe no-op on iOS).
+        requestFullscreenSafe(section);
+
+        hasStarted = true;
+        userPaused = false;
+        updatePlayPauseUI();
+        showControlsTemporarily();
+      });
+
+      /* ---------- 5. Fullscreen helpers ---------- */
+      function requestFullscreenSafe(el) {
+        const fn = el.requestFullscreen
+          || el.webkitRequestFullscreen
+          || el.msRequestFullscreen;
+        if (typeof fn === "function") {
+          try {
+            const p = fn.call(el);
+            if (p && typeof p.catch === "function") p.catch(function () {});
+          } catch (err) { /* iOS Safari: silently ignore */ }
         }
       }
 
-      cornerMuteBtn.addEventListener("click", function (e) {
+      function exitFullscreenSafe() {
+        const fn = document.exitFullscreen
+          || document.webkitExitFullscreen
+          || document.msExitFullscreen;
+        if (typeof fn === "function") {
+          try {
+            const p = fn.call(document);
+            if (p && typeof p.catch === "function") p.catch(function () {});
+          } catch (err) { /* ignore */ }
+        }
+      }
+
+      function isFullscreen() {
+        return !!(document.fullscreenElement
+          || document.webkitFullscreenElement
+          || document.msFullscreenElement);
+      }
+
+      function updateFsIcon() {
+        if (isFullscreen()) {
+          fsEnterIcon.classList.add("hidden");
+          fsExitIcon.classList.remove("hidden");
+          fsToggleBtn.setAttribute("aria-label", "Exit fullscreen");
+          fsToggleBtn.title = "Exit fullscreen";
+        } else {
+          fsEnterIcon.classList.remove("hidden");
+          fsExitIcon.classList.add("hidden");
+          fsToggleBtn.setAttribute("aria-label", "Enter fullscreen");
+          fsToggleBtn.title = "Fullscreen";
+        }
+      }
+
+      fsToggleBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (isFullscreen()) exitFullscreenSafe();
+        else requestFullscreenSafe(section);
+        showControlsTemporarily();
+      });
+
+      // Keep the icon correct if the user exits via Esc or browser UI.
+      ["fullscreenchange", "webkitfullscreenchange", "msfullscreenchange"]
+        .forEach(function (evt) {
+          document.addEventListener(evt, updateFsIcon);
+        });
+
+      /* ---------- 6. Play / Pause UI (corner) ---------- */
+      function updatePlayPauseUI() {
+        if (video.paused) {
+          pauseIcon.classList.add("hidden");
+          playIcon.classList.remove("hidden");
+          playPauseBtn.setAttribute("aria-label", "Play");
+          playPauseBtn.title = "Play";
+        } else {
+          pauseIcon.classList.remove("hidden");
+          playIcon.classList.add("hidden");
+          playPauseBtn.setAttribute("aria-label", "Pause");
+          playPauseBtn.title = "Pause";
+        }
+      }
+
+      playPauseBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (video.paused) {
+          userPaused = false;
+          // Sync MP3 with the video on resume
+          try { audio.currentTime = video.currentTime; } catch (err) {}
+          playBoth();
+          if (fillVideo) {
+            const fp = fillVideo.play();
+            if (fp && fp.catch) fp.catch(function () {});
+          }
+        } else {
+          userPaused = true;
+          pauseBoth();
+        }
+        updatePlayPauseUI();
+        showControlsTemporarily();
+      });
+
+      video.addEventListener("play", updatePlayPauseUI);
+      video.addEventListener("pause", updatePlayPauseUI);
+
+      /* ---------- 7. Mute / Unmute UI (controls MP3) ---------- */
+      function updateMuteUI() {
+        if (audio.muted) {
+          mutedIcon.classList.remove("hidden");
+          unmutedIcon.classList.add("hidden");
+          muteBtn.setAttribute("aria-label", "Unmute audio");
+          muteBtn.title = "Unmute";
+        } else {
+          mutedIcon.classList.add("hidden");
+          unmutedIcon.classList.remove("hidden");
+          muteBtn.setAttribute("aria-label", "Mute audio");
+          muteBtn.title = "Mute";
+        }
+      }
+
+      muteBtn.addEventListener("click", function (e) {
         e.stopPropagation();
         audio.muted = !audio.muted;
-        // If the user unmutes before the audio has unlocked, treat it as a gesture
-        if (!audio.muted && !audioUnlocked) tryStartAudio();
         updateMuteUI();
+        showControlsTemporarily();
       });
 
       audio.addEventListener("volumechange", updateMuteUI);
-      updateMuteUI();
 
-      /* ---------- 8. Tab visibility: pause/resume both ---------- */
+      /* ---------- 8. Controls auto-hide ---------- */
+      let hideTimer = null;
+      function showControlsTemporarily() {
+        section.classList.add("controls-visible");
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(function () {
+          // Only auto-hide while playing
+          if (!video.paused) section.classList.remove("controls-visible");
+        }, 3000);
+      }
+
+      // Hover (desktop) keeps them visible; tap on touch shows them briefly.
+      section.addEventListener("mousemove", function () {
+        if (!window.matchMedia("(hover: none)").matches) {
+          section.classList.add("controls-visible");
+          if (hideTimer) clearTimeout(hideTimer);
+          hideTimer = setTimeout(function () {
+            if (!video.paused) section.classList.remove("controls-visible");
+          }, 3000);
+        }
+      });
+
+      section.addEventListener(
+        "touchstart",
+        function () {
+          if (window.matchMedia("(hover: none)").matches) {
+            section.classList.add("controls-visible");
+            showControlsTemporarily();
+          }
+        },
+        { passive: true }
+      );
+
+      // Tap anywhere on the video toggles the corner controls.
+      video.addEventListener("click", function () {
+        if (!hasStarted) return;
+        section.classList.toggle("controls-visible");
+        if (section.classList.contains("controls-visible")) showControlsTemporarily();
+      });
+
+      /* ---------- 9. Tab visibility: pause / resume both ---------- */
       document.addEventListener("visibilitychange", function () {
         if (document.hidden) {
           if (!video.paused) pauseBoth();
         } else {
-          startVideo();                    // video can resume freely (muted)
-          if (audioUnlocked && !userPaused) {
-            const p = audio.play();
-            if (p && p.catch) p.catch(function () {});
+          if (hasStarted && !userPaused) {
+            playBoth();
+            if (fillVideo) {
+              const fp = fillVideo.play();
+              if (fp && fp.catch) fp.catch(function () {});
+            }
           }
         }
       });
 
-      /* ---------- 9. Keep fill video in sync with the sharp video ---------- */
-      // (They're the same file; a light drift check keeps them visually aligned.)
-      video.addEventListener("timeupdate", function () {
-        if (fillVideo && !fillVideo.paused) {
-          const d = Math.abs(fillVideo.currentTime - video.currentTime);
-          if (d > 0.5) {
-            try { fillVideo.currentTime = video.currentTime; } catch (e) {}
-          }
-        }
-      });
+      /* ---------- 10. Initial UI state ---------- */
+      updatePlayPauseUI();
+      updateMuteUI();
+      updateFsIcon();
     })();
   </script>
 
