@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Self-hosted video · clean embed</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Self-hosted vertical video · clean embed</title>
+
   <style>
-    /* -------------------------------
-       Global reset & dark theme
-    -------------------------------- */
-    * {
+    /* ============================================
+       Global reset & dark professional theme
+       ============================================ */
+    *,
+    *::before,
+    *::after {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
@@ -16,28 +19,45 @@
 
     body {
       background: #0b0d10;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      min-height: 100dvh;
       padding: 1.5rem;
+      color: #e6e8eb;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* -------------------------------
+    /* ============================================
        Video wrapper – responsive, centered
-    -------------------------------- */
+       Default: vertical 9:16 (TikTok / Reels style)
+       Media query switches to 16:9 on wide screens
+       ============================================ */
     .video-wrapper {
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto;
-      aspect-ratio: 16 / 9;
-      background: #000;          /* fallback while loading */
-      border-radius: 1.25rem;
-      box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.8), 0 8px 18px -6px rgba(0, 0, 0, 0.6);
-      overflow: hidden;          /* ensures rounded corners clip video */
       position: relative;
+      width: 100%;
+      max-width: 420px;           /* vertical-friendly default */
+      aspect-ratio: 9 / 16;       /* vertical default */
+      margin: 0 auto;
+      background: #000;
+      border-radius: 1.25rem;
+      box-shadow:
+        0 20px 35px -8px rgba(0, 0, 0, 0.8),
+        0 8px 18px -6px rgba(0, 0, 0, 0.6);
+      overflow: hidden;            /* clips video to rounded corners */
+      isolation: isolate;          /* keeps stacking context clean */
+    }
+
+    /* Horizontal layout for wider viewports */
+    @media (min-width: 700px) {
+      .video-wrapper {
+        max-width: 1000px;
+        aspect-ratio: 16 / 9;
+      }
     }
 
     /* Main video element */
@@ -45,63 +65,72 @@
       display: block;
       width: 100%;
       height: 100%;
-      object-fit: cover;         /* fills wrapper, keeps 16:9 */
-      background: #0b0d10;       /* matches page background */
-      border-radius: 1.25rem;    /* double rounded for safety */
-      transition: opacity 0.2s ease;
+      object-fit: cover;           /* fills wrapper; swap to contain if letterboxing preferred */
+      background: #0b0d10;
+      border-radius: inherit;
+      transition: opacity 0.25s ease;
     }
 
-    /* -------------------------------
+    /* ============================================
        Custom controls overlay
-       - modern, minimal, touch friendly
-    -------------------------------- */
+       Minimal, modern, touch-friendly
+       ============================================ */
     .controls {
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      inset: auto 0 0 0;           /* pinned to bottom */
       display: flex;
       justify-content: center;
+      align-items: flex-end;
       gap: 0.75rem;
       padding: 1rem 1rem 1.25rem;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, transparent 100%);
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.7) 0%,
+        rgba(0, 0, 0, 0.35) 45%,
+        transparent 100%
+      );
       opacity: 0;
       transition: opacity 0.2s ease;
-      pointer-events: none;      /* only buttons receive clicks */
+      pointer-events: none;        /* only buttons receive clicks */
+      z-index: 2;
     }
 
-    /* Show controls on hover (desktop) and when video is paused (all) */
+    /* Show controls on hover (desktop) and when forced via .controls-visible */
     .video-wrapper:hover .controls,
     .video-wrapper.controls-visible .controls {
       opacity: 1;
       pointer-events: auto;
     }
 
-    /* Button style – minimal, circular, glassmorphism light */
+    /* Circular glass-morphism buttons */
     .control-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.15);
       background: rgba(20, 20, 25, 0.65);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 3rem;
       width: 3.25rem;
       height: 3.25rem;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       color: #f0f0f5;
-      transition: all 0.15s ease;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
       padding: 0;
-      font-size: 0;               /* hide any accidental text */
-      pointer-events: auto;
+      font-size: 0;                /* hide any stray text */
+      line-height: 1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      transition: background 0.15s ease, transform 0.15s ease,
+        border-color 0.15s ease;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
 
     .control-btn:hover,
     .control-btn:focus-visible {
-      background: rgba(40, 40, 50, 0.85);
+      background: rgba(40, 40, 50, 0.9);
       border-color: rgba(255, 255, 255, 0.3);
       transform: scale(1.05);
       outline: none;
@@ -111,41 +140,45 @@
       transform: scale(0.96);
     }
 
-    /* SVG icons (inline, no external library) */
     .control-btn svg {
       width: 1.6rem;
       height: 1.6rem;
       fill: currentColor;
       display: block;
+      pointer-events: none;        /* icons shouldn't intercept clicks */
     }
 
-    /* Hidden class for toggling icons */
+    /* Hidden helper for toggling icon variants */
     .hidden {
       display: none !important;
     }
 
-    /* -------------------------------
-       Fallback message (hidden by default)
-    -------------------------------- */
+    /* ============================================
+       Fallback message
+       Hidden unless video fails or is unsupported
+       ============================================ */
     .video-fallback {
       display: none;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      color: #bbb;
-      background: #1a1d23;
-      padding: 1rem 2rem;
-      border-radius: 2rem;
+      color: #cbd0d6;
+      background: #161a1f;
+      padding: 1.25rem 2rem;
+      border-radius: 1rem;
       font-size: 0.95rem;
+      line-height: 1.5;
       text-align: center;
-      width: 90%;
-      max-width: 400px;
-      border: 1px solid #2e3138;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      width: 88%;
+      max-width: 380px;
+      border: 1px solid #262b33;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+      z-index: 3;
     }
 
-    .video-wrapper.fallback-active video {
+    .video-wrapper.fallback-active video,
+    .video-wrapper.fallback-active .controls {
       display: none;
     }
 
@@ -153,28 +186,31 @@
       display: block;
     }
 
-    /* -------------------------------
-       Accessibility & small screens
-    -------------------------------- */
+    /* ============================================
+       Small-screen refinements
+       ============================================ */
     @media (max-width: 480px) {
+      body {
+        padding: 0.75rem;
+      }
+      .video-wrapper {
+        border-radius: 1rem;
+      }
       .controls {
         gap: 0.5rem;
         padding: 0.75rem 0.75rem 1rem;
       }
       .control-btn {
-        width: 2.8rem;
-        height: 2.8rem;
+        width: 2.85rem;
+        height: 2.85rem;
       }
       .control-btn svg {
         width: 1.4rem;
         height: 1.4rem;
       }
-      .video-wrapper {
-        border-radius: 1rem;
-      }
     }
 
-    /* Respect reduced motion */
+    /* Respect reduced motion preferences */
     @media (prefers-reduced-motion: reduce) {
       .control-btn,
       .controls,
@@ -186,13 +222,15 @@
 </head>
 <body>
 
-  <!-- Video wrapper: maintains 16:9, rounded corners, shadow -->
+  <!-- ============================================
+       Video wrapper
+       - Maintains aspect ratio (9:16 on mobile, 16:9 on desktop)
+       - Clips video to rounded corners
+       - Hosts the custom control overlay and fallback
+       ============================================ -->
   <div class="video-wrapper" id="videoWrapper">
-    <!-- 
-      HTML5 video with required attributes:
-      autoplay, muted, loop, playsinline, preload="metadata"
-      poster: a neutral dark placeholder (data URI to avoid extra file)
-    -->
+
+    <!-- HTML5 video: autoplay, muted, loop, playsinline for mobile autoplay -->
     <video
       id="myVideo"
       autoplay
@@ -200,214 +238,235 @@
       loop
       playsinline
       preload="metadata"
-      poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='9' viewBox='0 0 16 9'%3E%3Crect width='16' height='9' fill='%23161a1f'/%3E%3Ctext x='8' y='5.2' font-family='system-ui, sans-serif' font-size='1.2' fill='%233a3f4a' text-anchor='middle' dominant-baseline='middle'%3Eloading…%3C/text%3E%3C/svg%3E"
+      poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='16' viewBox='0 0 9 16'%3E%3Crect width='9' height='16' fill='%23161a1f'/%3E%3Ctext x='4.5' y='8' font-family='system-ui, sans-serif' font-size='0.9' fill='%233a3f4a' text-anchor='middle' dominant-baseline='middle'%3Eloading…%3C/text%3E%3C/svg%3E"
       aria-label="Self-hosted video player"
     >
-      <source src="video.mp4.mp4" type="video/mp4" />
-      <!-- Fallback message for unsupported browsers -->
+      <!-- Relative path to the MP4 in the same folder as index.html -->
+      <source src="video9.mp4" type="video/mp4" />
+      <!-- Native fallback for unsupported browsers -->
       <p>Your browser does not support HTML5 video. Please upgrade to a modern browser.</p>
     </video>
 
-    <!-- Custom control buttons: play/pause and mute/unmute -->
+    <!-- Custom control overlay (play/pause + mute/unmute) -->
     <div class="controls" id="customControls">
-      <!-- Play/Pause button -->
-      <button class="control-btn" id="playPauseBtn" aria-label="Pause video" title="Pause">
-        <!-- Pause icon (visible when playing) -->
+
+      <!-- Play / Pause -->
+      <button
+        class="control-btn"
+        id="playPauseBtn"
+        type="button"
+        aria-label="Pause video"
+        title="Pause"
+      >
+        <!-- Pause icon (shown while playing) -->
         <svg id="pauseIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="6" y="4" width="4" height="16" rx="1" />
-          <rect x="14" y="4" width="4" height="16" rx="1" />
+          <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+          <rect x="14" y="4" width="4" height="16" rx="1"></rect>
         </svg>
-        <!-- Play icon (visible when paused) -->
+        <!-- Play icon (shown while paused) -->
         <svg id="playIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z" />
+          <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
         </svg>
       </button>
 
-      <!-- Mute/Unmute button -->
-      <button class="control-btn" id="muteBtn" aria-label="Unmute video" title="Unmute">
-        <!-- Muted icon (visible when muted) -->
+      <!-- Mute / Unmute -->
+      <button
+        class="control-btn"
+        id="muteBtn"
+        type="button"
+        aria-label="Unmute video"
+        title="Unmute"
+      >
+        <!-- Muted icon (shown while muted) -->
         <svg id="mutedIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 10v4h4l5 5V5L7 10H3z" />
-          <line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          <line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
+          <line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+          <line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
         </svg>
-        <!-- Unmuted icon (visible when unmuted) -->
+        <!-- Unmuted icon (shown while unmuted) -->
         <svg id="unmutedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 10v4h4l5 5V5L7 10H3z" />
-          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
-          <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+          <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path>
+          <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
         </svg>
       </button>
     </div>
 
-    <!-- Fallback message (shown only if video fails / unsupported) -->
+    <!-- Fallback message (shown if the video can't play) -->
     <div class="video-fallback" id="fallbackMsg">
       ⚠️ Your browser cannot play this video.<br />
       Please try a modern browser or download the file.
     </div>
   </div>
 
-  <!-- -------------------------------
-       JavaScript: lazy play/pause, custom controls
-  -------------------------------- -->
+  <!-- ============================================
+       Minimal vanilla JS
+       - Custom controls UI
+       - Lazy play/pause via IntersectionObserver
+       - Autoplay resilience
+       ============================================ -->
   <script>
-    (function() {
-      'use strict';
+    (function () {
+      "use strict";
 
-      // ----- DOM references -----
-      const wrapper = document.getElementById('videoWrapper');
-      const video = document.getElementById('myVideo');
-      const playPauseBtn = document.getElementById('playPauseBtn');
-      const muteBtn = document.getElementById('muteBtn');
-      const pauseIcon = document.getElementById('pauseIcon');
-      const playIcon = document.getElementById('playIcon');
-      const mutedIcon = document.getElementById('mutedIcon');
-      const unmutedIcon = document.getElementById('unmutedIcon');
-      const fallbackMsg = document.getElementById('fallbackMsg');
+      /* ---------- DOM references ---------- */
+      const wrapper = document.getElementById("videoWrapper");
+      const video = document.getElementById("myVideo");
+      const playPauseBtn = document.getElementById("playPauseBtn");
+      const muteBtn = document.getElementById("muteBtn");
+      const pauseIcon = document.getElementById("pauseIcon");
+      const playIcon = document.getElementById("playIcon");
+      const mutedIcon = document.getElementById("mutedIcon");
+      const unmutedIcon = document.getElementById("unmutedIcon");
 
-      // ----- 1. Fallback detection (if video fails to load or unsupported) -----
-      // Show fallback if video element can't play or source fails.
-      video.addEventListener('error', function() {
-        wrapper.classList.add('fallback-active');
+      /* ---------- 1. Fallback detection ---------- */
+      // If the video errors out or the MP4 format isn't supported, show fallback.
+      video.addEventListener("error", function () {
+        wrapper.classList.add("fallback-active");
       });
 
-      // Also check if video source is not playable (e.g., codec/format)
-      if (video.canPlayType && video.canPlayType('video/mp4') === '') {
-        wrapper.classList.add('fallback-active');
+      // Check format support early (optional safety net).
+      if (video.canPlayType && video.canPlayType("video/mp4") === "") {
+        wrapper.classList.add("fallback-active");
       }
 
-      // ----- 2. Custom play/pause with icon toggle -----
+      /* ---------- 2. Play / Pause UI ---------- */
       function updatePlayPauseUI() {
         if (video.paused) {
-          // Video is paused → show play icon, hide pause icon
-          pauseIcon.classList.add('hidden');
-          playIcon.classList.remove('hidden');
-          playPauseBtn.setAttribute('aria-label', 'Play video');
-          playPauseBtn.title = 'Play';
-          // When paused, keep controls visible (so user sees buttons)
-          wrapper.classList.add('controls-visible');
+          // Paused → show play icon, hide pause icon
+          pauseIcon.classList.add("hidden");
+          playIcon.classList.remove("hidden");
+          playPauseBtn.setAttribute("aria-label", "Play video");
+          playPauseBtn.title = "Play";
+          // Keep controls visible while paused so the user can resume easily
+          wrapper.classList.add("controls-visible");
         } else {
-          // Video is playing → show pause icon, hide play icon
-          pauseIcon.classList.remove('hidden');
-          playIcon.classList.add('hidden');
-          playPauseBtn.setAttribute('aria-label', 'Pause video');
-          playPauseBtn.title = 'Pause';
-          // Remove forced visibility (controls appear on hover/touch)
-          wrapper.classList.remove('controls-visible');
+          // Playing → show pause icon, hide play icon
+          pauseIcon.classList.remove("hidden");
+          playIcon.classList.add("hidden");
+          playPauseBtn.setAttribute("aria-label", "Pause video");
+          playPauseBtn.title = "Pause";
+          // On touch devices, keep controls briefly visible then auto-hide
+          if (window.matchMedia("(hover: none)").matches) {
+            wrapper.classList.add("controls-visible");
+            clearTimeout(wrapper._hideControlsTimer);
+            wrapper._hideControlsTimer = setTimeout(function () {
+              if (!video.paused) wrapper.classList.remove("controls-visible");
+            }, 2200);
+          } else {
+            wrapper.classList.remove("controls-visible");
+          }
         }
       }
 
-      playPauseBtn.addEventListener('click', function(e) {
-        e.stopPropagation(); // avoid triggering wrapper events
+      playPauseBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
         if (video.paused) {
-          video.play().catch(() => { /* Autoplay might be blocked, ignore */ });
+          video.play().catch(function () {
+            /* Autoplay/play may be blocked; UI will reflect the actual state */
+          });
         } else {
           video.pause();
         }
         updatePlayPauseUI();
       });
 
-      // Update UI whenever video state changes (play, pause, etc.)
-      video.addEventListener('play', updatePlayPauseUI);
-      video.addEventListener('pause', updatePlayPauseUI);
+      video.addEventListener("play", updatePlayPauseUI);
+      video.addEventListener("pause", updatePlayPauseUI);
 
-      // ----- 3. Mute/unmute toggle with icon swap -----
+      /* ---------- 3. Mute / Unmute UI ---------- */
       function updateMuteUI() {
         if (video.muted) {
-          // Muted → show muted icon
-          mutedIcon.classList.remove('hidden');
-          unmutedIcon.classList.add('hidden');
-          muteBtn.setAttribute('aria-label', 'Unmute video');
-          muteBtn.title = 'Unmute';
+          mutedIcon.classList.remove("hidden");
+          unmutedIcon.classList.add("hidden");
+          muteBtn.setAttribute("aria-label", "Unmute video");
+          muteBtn.title = "Unmute";
         } else {
-          // Unmuted → show unmuted icon
-          mutedIcon.classList.add('hidden');
-          unmutedIcon.classList.remove('hidden');
-          muteBtn.setAttribute('aria-label', 'Mute video');
-          muteBtn.title = 'Mute';
+          mutedIcon.classList.add("hidden");
+          unmutedIcon.classList.remove("hidden");
+          muteBtn.setAttribute("aria-label", "Mute video");
+          muteBtn.title = "Mute";
         }
       }
 
-      muteBtn.addEventListener('click', function(e) {
+      muteBtn.addEventListener("click", function (e) {
         e.stopPropagation();
         video.muted = !video.muted;
         updateMuteUI();
       });
 
-      // Sync UI on volume/mute changes (e.g., via browser controls)
-      video.addEventListener('volumechange', updateMuteUI);
+      video.addEventListener("volumechange", updateMuteUI);
 
-      // Initial UI sync (autoplay muted is default)
+      /* Initial UI sync */
       updatePlayPauseUI();
       updateMuteUI();
 
-      // ----- 4. Lazy loading: play/pause based on viewport -----
-      // IntersectionObserver: play when at least 50% visible, pause otherwise.
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            // Video enters viewport → play (muted, autoplay already set, but just in case)
-            // Use a small timeout to avoid abrupt play when scrolling fast
-            video.play().catch(() => {
-              // Autoplay policy might block unmuted; but since muted, usually fine.
-              // If blocked, update UI to show paused state.
-              updatePlayPauseUI();
+      /* ---------- 4. Lazy play / pause via IntersectionObserver ---------- */
+      // Play only when the video is ≥50% in the viewport; pause when it leaves.
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                // Entered viewport → attempt play (muted, so autoplay is allowed)
+                const playPromise = video.play();
+                if (playPromise && typeof playPromise.catch === "function") {
+                  playPromise.catch(function () {
+                    // Autoplay blocked (e.g., strict policies) — reflect real state
+                    updatePlayPauseUI();
+                  });
+                }
+              } else {
+                // Left viewport → pause to conserve resources
+                if (!video.paused) video.pause();
+              }
             });
-          } else {
-            // Video leaves viewport → pause to save resources
-            if (!video.paused) {
-              video.pause();
-            }
+          },
+          {
+            threshold: 0.5,
+            rootMargin: "0px",
           }
+        );
+
+        observer.observe(wrapper);
+      } else {
+        // Fallback for very old browsers: just attempt to play
+        video.play().catch(function () {
+          updatePlayPauseUI();
         });
-      }, {
-        threshold: 0.5,        // trigger when 50% visible
-        rootMargin: '0px'      // no extra margin
-      });
+      }
 
-      // Start observing the wrapper (or video)
-      observer.observe(wrapper);
-
-      // ----- 5. Extra: show controls on touch devices (tap on video toggles overlay) -----
-      // On mobile, hover doesn't exist; we make sure controls are accessible.
-      // Tapping the video toggles controls visibility (play/pause handled by button).
-      // Also ensures the controls don't stay hidden forever.
-      video.addEventListener('click', function(e) {
-        // On touch devices, tap on video toggles the controls visibility
-        if (window.matchMedia('(hover: none)').matches) {
-          wrapper.classList.toggle('controls-visible');
+      /* ---------- 5. Touch UX: tap to reveal controls ---------- */
+      // On touch devices there's no hover, so tapping the video reveals controls.
+      video.addEventListener("click", function () {
+        if (window.matchMedia("(hover: none)").matches) {
+          wrapper.classList.toggle("controls-visible");
         }
       });
 
-      // Also when user taps anywhere on wrapper on mobile, show controls briefly
-      wrapper.addEventListener('touchstart', function() {
-        if (window.matchMedia('(hover: none)').matches) {
-          wrapper.classList.add('controls-visible');
-          // Auto-hide after 2.5 seconds, but only if video is playing
-          clearTimeout(wrapper._hideControlsTimer);
-          wrapper._hideControlsTimer = setTimeout(() => {
-            if (!video.paused) {
-              wrapper.classList.remove('controls-visible');
-            }
-          }, 2500);
-        }
-      }, { passive: true });
+      // Tapping anywhere on the wrapper shows controls briefly on touch devices.
+      wrapper.addEventListener(
+        "touchstart",
+        function () {
+          if (window.matchMedia("(hover: none)").matches) {
+            wrapper.classList.add("controls-visible");
+            clearTimeout(wrapper._hideControlsTimer);
+            wrapper._hideControlsTimer = setTimeout(function () {
+              if (!video.paused) wrapper.classList.remove("controls-visible");
+            }, 2500);
+          }
+        },
+        { passive: true }
+      );
 
-      // ----- 6. Handle autoplay best practices -----
-      // If autoplay fails (rare with muted), we catch and update UI.
-      window.addEventListener('load', function() {
-        // Try to play if not already playing (in case IntersectionObserver hasn't fired)
-        // But only if video is in viewport — observer will handle.
-        // Just ensure video is muted at start (already set by attribute).
+      /* ---------- 6. Enforce muted autoplay on load ---------- */
+      // Some browsers require muted to be explicitly set before play().
+      window.addEventListener("load", function () {
         if (video.muted === false) {
-          video.muted = true; // enforce muted for autoplay policy
+          video.muted = true;
           updateMuteUI();
         }
       });
-
-      // Handle case where video is already in viewport on page load
-      // IntersectionObserver will fire immediately, so no extra code needed.
-
     })();
   </script>
 
