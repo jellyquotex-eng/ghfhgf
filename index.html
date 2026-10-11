@@ -34,20 +34,19 @@
 
     /* ============================================
        Video wrapper – vertical 9:16 (TikTok style)
-       Fixed max-width 420px, centered, rounded, soft shadow
        ============================================ */
     .video-wrapper {
       position: relative;
       width: 100%;
-      max-width: 420px;           /* vertical-friendly */
-      aspect-ratio: 9 / 16;       /* vertical 9:16 */
+      max-width: 420px;
+      aspect-ratio: 9 / 16;
       margin: 0 auto;
       background: #000;
       border-radius: 1.25rem;
       box-shadow:
         0 20px 35px -8px rgba(0, 0, 0, 0.8),
         0 8px 18px -6px rgba(0, 0, 0, 0.6);
-      overflow: hidden;            /* clips video to rounded corners */
+      overflow: hidden;
       isolation: isolate;
     }
 
@@ -56,7 +55,7 @@
       display: block;
       width: 100%;
       height: 100%;
-      object-fit: contain;         /* no stretching, no cropping */
+      object-fit: contain;
       background: #000;
       border-radius: inherit;
       transition: opacity 0.25s ease;
@@ -142,53 +141,61 @@
     }
 
     /* ============================================
-       Big center play button (shown when autoplay is blocked)
+       "Tap to play with sound" overlay
+       Shown until the user taps for the first time
+       (browser autoplay policy requires a gesture for audio)
        ============================================ */
-    .big-play {
-      display: none;
+    .tap-overlay {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 5rem;
-      height: 5rem;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      background: rgba(20, 20, 25, 0.72);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      color: #fff;
-      cursor: pointer;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
-      transition: transform 0.15s ease, background 0.15s ease;
-      z-index: 4;
+      gap: 0.85rem;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      color: #fff;
+      cursor: pointer;
+      z-index: 6;
+      border: none;
+      padding: 1rem;
+      text-align: center;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
 
-    .big-play:hover,
-    .big-play:focus-visible {
-      background: rgba(40, 40, 50, 0.9);
-      transform: translate(-50%, -50%) scale(1.06);
-      outline: none;
+    .tap-overlay .tap-icon {
+      width: 5rem;
+      height: 5rem;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(20, 20, 25, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
     }
 
-    .big-play:active {
-      transform: translate(-50%, -50%) scale(0.97);
-    }
-
-    .big-play svg {
+    .tap-overlay .tap-icon svg {
       width: 2.2rem;
       height: 2.2rem;
-      fill: currentColor;
-      margin-left: 4px; /* optical centering for play triangle */
+      fill: #fff;
+      margin-left: 4px; /* optical centering */
     }
 
-    /* Show big play button when JS adds .autoplay-blocked */
-    .video-wrapper.autoplay-blocked .big-play {
-      display: flex;
+    .tap-overlay .tap-text {
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      font-weight: 500;
+      color: #f0f0f5;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Hide overlay once started */
+    .video-wrapper.started .tap-overlay {
+      display: none;
     }
 
     /* ============================================
@@ -211,11 +218,12 @@
       max-width: 380px;
       border: 1px solid #262b33;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
-      z-index: 5;
+      z-index: 7;
     }
 
     .video-wrapper.fallback-active video,
     .video-wrapper.fallback-active .controls,
+    .video-wrapper.fallback-active .tap-overlay,
     .video-wrapper.fallback-active .big-play {
       display: none;
     }
@@ -246,20 +254,23 @@
         width: 1.4rem;
         height: 1.4rem;
       }
-      .big-play {
+      .tap-overlay .tap-icon {
         width: 4.25rem;
         height: 4.25rem;
       }
-      .big-play svg {
+      .tap-overlay .tap-icon svg {
         width: 1.9rem;
         height: 1.9rem;
+      }
+      .tap-overlay .tap-text {
+        font-size: 0.875rem;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
       .control-btn,
       .controls,
-      .big-play,
+      .tap-overlay,
       .video-wrapper video {
         transition: none;
       }
@@ -270,45 +281,51 @@
 
   <!-- ============================================
        Video wrapper
-       - 9:16 vertical, max-width 420px, centered
-       - Rounded corners, soft shadow
-       - Hosts controls, big play, and fallback
        ============================================ -->
   <div class="video-wrapper" id="videoWrapper">
 
-    <!-- HTML5 video: autoplay, muted, loop, playsinline, preload -->
+    <!-- HTML5 video: muted (its own sound is off — MP3 is the audio) -->
     <video
       id="myVideo"
-      autoplay
       muted
-      loop
       playsinline
       preload="metadata"
+      loop
       poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='16' viewBox='0 0 9 16'%3E%3Crect width='9' height='16' fill='%23161a1f'/%3E%3Ctext x='4.5' y='8' font-family='system-ui, sans-serif' font-size='0.9' fill='%233a3f4a' text-anchor='middle' dominant-baseline='middle'%3Eloading…%3C/text%3E%3C/svg%3E"
       aria-label="Self-hosted video player"
     >
       <!-- Relative path; "@" URL-encoded as %40 -->
       <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
-      <!-- Native fallback for unsupported browsers -->
       <p>Your browser does not support HTML5 video. Please upgrade to a modern browser.</p>
     </video>
 
-    <!-- Big center play button (shown only if autoplay is blocked) -->
-    <button class="big-play" id="bigPlayBtn" type="button" aria-label="Play video" title="Play">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
-      </svg>
+    <!-- Hidden MP3: the actual sound source. No native controls shown. -->
+    <audio
+      id="myAudio"
+      preload="auto"
+      loop
+      src="SaveTik.io_7687661810236869909.mp3"
+    ></audio>
+
+    <!-- "Tap to play with sound" overlay (required by autoplay policy) -->
+    <button class="tap-overlay" id="tapOverlay" type="button" aria-label="Tap to play with sound">
+      <span class="tap-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
+        </svg>
+      </span>
+      <span class="tap-text">Tap to play with sound</span>
     </button>
 
     <!-- Custom control overlay (play/pause + mute/unmute) -->
     <div class="controls" id="customControls">
 
-      <!-- Play / Pause -->
+      <!-- Play / Pause (controls both video + MP3) -->
       <button
         class="control-btn"
         id="playPauseBtn"
         type="button"
-        aria-label="Pause video"
+        aria-label="Pause"
         title="Pause"
       >
         <svg id="pauseIcon" viewBox="0 0 24 24" aria-hidden="true">
@@ -320,13 +337,13 @@
         </svg>
       </button>
 
-      <!-- Mute / Unmute -->
+      <!-- Mute / Unmute (controls the MP3 audio) -->
       <button
         class="control-btn"
         id="muteBtn"
         type="button"
-        aria-label="Unmute video"
-        title="Unmute"
+        aria-label="Mute audio"
+        title="Mute"
       >
         <svg id="mutedIcon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
@@ -341,18 +358,19 @@
       </button>
     </div>
 
-    <!-- Fallback message (shown if the video can't play) -->
+    <!-- Fallback message -->
     <div class="video-fallback" id="fallbackMsg">
-      ⚠️ Your browser cannot play this video.<br />
-      Please try a modern browser or download the file.
+      ⚠️ Your browser cannot play this video or audio.<br />
+      Please try a modern browser or download the files.
     </div>
   </div>
 
   <!-- ============================================
        Vanilla JS
-       - Custom controls UI
-       - Lazy play/pause via IntersectionObserver
-       - Autoplay-blocked → show big play button
+       - Video + MP3 start together, loop in sync forever
+       - Tap-to-play overlay (browser autoplay policy)
+       - Play/pause & mute/unmute controls
+       - IntersectionObserver + visibilitychange pause/resume
        - Fallback detection
        ============================================ -->
   <script>
@@ -362,40 +380,74 @@
       /* ---------- DOM references ---------- */
       const wrapper = document.getElementById("videoWrapper");
       const video = document.getElementById("myVideo");
+      const audio = document.getElementById("myAudio");
+      const tapOverlay = document.getElementById("tapOverlay");
       const playPauseBtn = document.getElementById("playPauseBtn");
       const muteBtn = document.getElementById("muteBtn");
-      const bigPlayBtn = document.getElementById("bigPlayBtn");
       const pauseIcon = document.getElementById("pauseIcon");
       const playIcon = document.getElementById("playIcon");
       const mutedIcon = document.getElementById("mutedIcon");
       const unmutedIcon = document.getElementById("unmutedIcon");
 
-      let userPaused = false;   // tracks explicit user pause (don't auto-resume)
+      let started = false;      // true after first user tap (audio unlocked)
+      let userPaused = false;   // true when user explicitly paused
 
       /* ---------- 1. Fallback detection ---------- */
       video.addEventListener("error", function () {
         wrapper.classList.add("fallback-active");
       });
-
+      audio.addEventListener("error", function () {
+        wrapper.classList.add("fallback-active");
+      });
       if (video.canPlayType && video.canPlayType("video/mp4") === "") {
         wrapper.classList.add("fallback-active");
       }
 
-      /* ---------- 2. Play / Pause UI ---------- */
+      /* ---------- 2. Core: play both together ---------- */
+      function playBoth() {
+        const v = video.play();
+        const a = audio.play();
+        if (v && v.catch) v.catch(function () {});
+        if (a && a.catch) a.catch(function () {});
+      }
+
+      function pauseBoth() {
+        video.pause();
+        audio.pause();
+      }
+
+      /* ---------- 3. Loop sync: restart MP3 with the video ---------- */
+      // Native "loop" already restarts the video; we hook "ended" to reset the audio too.
+      video.addEventListener("ended", function () {
+        // Both back to start, then play together again
+        try { video.currentTime = 0; } catch (e) {}
+        try { audio.currentTime = 0; } catch (e) {}
+        if (started && !userPaused) playBoth();
+      });
+
+      // Safety net: if the video's time drifts too far from the audio, resync.
+      // (Keeps audio and video locked together on every loop, forever.)
+      video.addEventListener("timeupdate", function () {
+        if (!started || video.paused) return;
+        const drift = Math.abs(video.currentTime - audio.currentTime);
+        if (drift > 0.35) {
+          try { audio.currentTime = video.currentTime; } catch (e) {}
+        }
+      });
+
+      /* ---------- 4. Play / Pause UI (controls both) ---------- */
       function updatePlayPauseUI() {
         if (video.paused) {
           pauseIcon.classList.add("hidden");
           playIcon.classList.remove("hidden");
-          playPauseBtn.setAttribute("aria-label", "Play video");
+          playPauseBtn.setAttribute("aria-label", "Play");
           playPauseBtn.title = "Play";
           wrapper.classList.add("controls-visible");
         } else {
           pauseIcon.classList.remove("hidden");
           playIcon.classList.add("hidden");
-          playPauseBtn.setAttribute("aria-label", "Pause video");
+          playPauseBtn.setAttribute("aria-label", "Pause");
           playPauseBtn.title = "Pause";
-          // Hide big play button once playing
-          wrapper.classList.remove("autoplay-blocked");
           if (window.matchMedia("(hover: none)").matches) {
             wrapper.classList.add("controls-visible");
             clearTimeout(wrapper._hideControlsTimer);
@@ -412,88 +464,93 @@
         e.stopPropagation();
         if (video.paused) {
           userPaused = false;
-          video.play().catch(function () { /* ignore */ });
+          playBoth();
         } else {
           userPaused = true;
-          video.pause();
+          pauseBoth();
         }
-        updatePlayPauseUI();
-      });
-
-      // Big play button (used when autoplay was blocked)
-      bigPlayBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        userPaused = false;
-        wrapper.classList.remove("autoplay-blocked");
-        video.play().catch(function () {
-          // still blocked → keep the button visible
-          wrapper.classList.add("autoplay-blocked");
-        });
         updatePlayPauseUI();
       });
 
       video.addEventListener("play", updatePlayPauseUI);
       video.addEventListener("pause", updatePlayPauseUI);
 
-      /* ---------- 3. Mute / Unmute UI ---------- */
+      /* ---------- 5. Mute / Unmute UI (controls the MP3) ---------- */
       function updateMuteUI() {
-        if (video.muted) {
+        if (audio.muted) {
           mutedIcon.classList.remove("hidden");
           unmutedIcon.classList.add("hidden");
-          muteBtn.setAttribute("aria-label", "Unmute video");
+          muteBtn.setAttribute("aria-label", "Unmute audio");
           muteBtn.title = "Unmute";
         } else {
           mutedIcon.classList.add("hidden");
           unmutedIcon.classList.remove("hidden");
-          muteBtn.setAttribute("aria-label", "Mute video");
+          muteBtn.setAttribute("aria-label", "Mute audio");
           muteBtn.title = "Mute";
         }
       }
 
       muteBtn.addEventListener("click", function (e) {
         e.stopPropagation();
-        video.muted = !video.muted;
+        audio.muted = !audio.muted;
         updateMuteUI();
       });
 
-      video.addEventListener("volumechange", updateMuteUI);
+      audio.addEventListener("volumechange", updateMuteUI);
 
       updatePlayPauseUI();
       updateMuteUI();
 
-      /* ---------- 4. Lazy play / pause via IntersectionObserver ---------- */
+      /* ---------- 6. Tap-to-play overlay (unlocks audio) ---------- */
+      function startPlayback() {
+        started = true;
+        userPaused = false;
+        wrapper.classList.add("started");
+        // Reset both to the beginning on first tap
+        try { video.currentTime = 0; } catch (e) {}
+        try { audio.currentTime = 0; } catch (e) {}
+        playBoth();
+        updatePlayPauseUI();
+      }
+
+      tapOverlay.addEventListener("click", function (e) {
+        e.stopPropagation();
+        startPlayback();
+      });
+
+      // Also allow clicking anywhere on the video to start (until it has started)
+      wrapper.addEventListener("click", function () {
+        if (!started) startPlayback();
+      });
+
+      /* ---------- 7. Lazy play/pause: IntersectionObserver ---------- */
       if ("IntersectionObserver" in window) {
         const observer = new IntersectionObserver(
           function (entries) {
             entries.forEach(function (entry) {
               if (entry.isIntersecting) {
-                // Only auto-play if user hasn't explicitly paused it
-                if (!userPaused) {
-                  const p = video.play();
-                  if (p && typeof p.catch === "function") {
-                    p.catch(function () {
-                      // Autoplay blocked → show big play button
-                      wrapper.classList.add("autoplay-blocked");
-                      updatePlayPauseUI();
-                    });
-                  }
-                }
+                // Resume both only if user already started and hasn't paused
+                if (started && !userPaused) playBoth();
               } else {
-                if (!video.paused) video.pause();
+                if (!video.paused) pauseBoth();
               }
             });
           },
           { threshold: 0.5, rootMargin: "0px" }
         );
         observer.observe(wrapper);
-      } else {
-        // Very old browsers: try to play
-        video.play().catch(function () {
-          wrapper.classList.add("autoplay-blocked");
-        });
       }
 
-      /* ---------- 5. Touch UX: tap to reveal controls ---------- */
+      /* ---------- 8. Tab visibility: pause/resume both ---------- */
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) {
+          if (!video.paused) pauseBoth();
+        } else {
+          if (started && !userPaused) playBoth();
+        }
+      });
+
+      /* ---------- 9. Touch UX: tap to reveal controls ---------- */
       video.addEventListener("click", function () {
         if (window.matchMedia("(hover: none)").matches) {
           wrapper.classList.toggle("controls-visible");
@@ -513,14 +570,6 @@
         },
         { passive: true }
       );
-
-      /* ---------- 6. Enforce muted autoplay on load ---------- */
-      window.addEventListener("load", function () {
-        if (video.muted === false) {
-          video.muted = true;
-          updateMuteUI();
-        }
-      });
     })();
   </script>
 
