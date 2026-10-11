@@ -2,884 +2,414 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>GestureLens · AI Face Filter & Hand Gesture Camera</title>
-  <!-- MediaPipe Hand Landmarker & Face Landmarker (via CDN) -->
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Self-hosted video · clean embed</title>
   <style>
-    /* ---------- GLOBAL RESET & TYPOGRAPHY ---------- */
+    /* -------------------------------
+       Global reset & dark theme
+    -------------------------------- */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
-      background: #0f0f12;
-      background: radial-gradient(circle at 20% 30%, #1a1a24, #0b0b0f 90%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    /* ---------- MAIN CONTAINER (GLASSMORPHISM) ---------- */
-    .app-container {
-      max-width: 1200px;
-      width: 100%;
-      background: rgba(22, 22, 30, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(150, 130, 255, 0.18);
-      border-radius: 48px;
-      padding: 24px;
-      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(170, 140, 255, 0.08);
-    }
-
-    /* ---------- HEADER / STATUS BAR ---------- */
-    .status-bar {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      padding: 0 6px;
-    }
-
-    .logo-badge {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .logo-icon {
-      width: 38px;
-      height: 38px;
-      background: linear-gradient(135deg, #8b5cf6, #3b82f6);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 6px 14px rgba(139, 92, 246, 0.4);
-    }
-
-    .logo-text {
-      font-weight: 600;
-      font-size: 1.2rem;
-      letter-spacing: -0.02em;
-      color: #f0eef8;
-    }
-
-    .logo-text span {
-      background: linear-gradient(135deg, #b69eff, #7aa7ff);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .gesture-indicator {
-      background: rgba(0, 0, 0, 0.5);
-      padding: 10px 20px;
-      border-radius: 40px;
-      border: 1px solid rgba(139, 92, 246, 0.3);
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      font-size: 0.9rem;
-      backdrop-filter: blur(8px);
-      color: #cfc9e6;
-    }
-
-    .gesture-indicator .value {
-      font-weight: 700;
-      color: #c4b5fd;
-      background: rgba(139, 92, 246, 0.2);
-      padding: 4px 12px;
-      border-radius: 30px;
-    }
-
-    .tracking-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      color: #a09bb5;
-    }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 10px #22c55e;
-    }
-
-    .dot.inactive {
-      background: #4b5563;
-      box-shadow: none;
-    }
-
-    /* ---------- CAMERA PREVIEW AREA ---------- */
-    .camera-stage {
-      position: relative;
-      border-radius: 32px;
-      overflow: hidden;
-      background: #050507;
-      aspect-ratio: 4 / 3;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 40px rgba(0, 0, 0, 0.8);
-      transition: box-shadow 0.3s;
-    }
-
-    .camera-stage.active {
-      box-shadow: inset 0 0 0 2px rgba(139, 92, 246, 0.5), 0 20px 40px rgba(0, 0, 0, 0.8);
-    }
-
-    #videoElement {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1); /* mirror front camera */
-      display: block;
-    }
-
-    #outputCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1); /* mirror canvas to match video */
-      display: block;
-      pointer-events: none;
-    }
-
-    /* overlay message if camera off */
-    .camera-off-message {
-      position: absolute;
-      inset: 0;
+      background: #0b0d10;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    /* -------------------------------
+       Video wrapper – responsive, centered
+    -------------------------------- */
+    .video-wrapper {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      aspect-ratio: 16 / 9;
+      background: #000;          /* fallback while loading */
+      border-radius: 1.25rem;
+      box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.8), 0 8px 18px -6px rgba(0, 0, 0, 0.6);
+      overflow: hidden;          /* ensures rounded corners clip video */
+      position: relative;
+    }
+
+    /* Main video element */
+    .video-wrapper video {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;         /* fills wrapper, keeps 16:9 */
+      background: #0b0d10;       /* matches page background */
+      border-radius: 1.25rem;    /* double rounded for safety */
+      transition: opacity 0.2s ease;
+    }
+
+    /* -------------------------------
+       Custom controls overlay
+       - modern, minimal, touch friendly
+    -------------------------------- */
+    .controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1rem 1rem 1.25rem;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;      /* only buttons receive clicks */
+    }
+
+    /* Show controls on hover (desktop) and when video is paused (all) */
+    .video-wrapper:hover .controls,
+    .video-wrapper.controls-visible .controls {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Button style – minimal, circular, glassmorphism light */
+    .control-btn {
+      background: rgba(20, 20, 25, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 3rem;
+      width: 3.25rem;
+      height: 3.25rem;
+      display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(10, 10, 15, 0.9);
-      color: #9ca3af;
-      font-size: 1.1rem;
-      gap: 16px;
-      z-index: 5;
-      text-align: center;
-      padding: 24px;
-      backdrop-filter: blur(4px);
-    }
-
-    /* ---------- CONTROL PANEL ---------- */
-    .control-panel {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 24px;
-      gap: 20px;
-    }
-
-    .camera-controls {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e5e1f0;
-      padding: 12px 22px;
-      border-radius: 40px;
-      font-weight: 500;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
-      backdrop-filter: blur(8px);
-      letter-spacing: -0.01em;
+      color: #f0f0f5;
+      transition: all 0.15s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      padding: 0;
+      font-size: 0;               /* hide any accidental text */
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .btn:hover {
-      background: rgba(139, 92, 246, 0.2);
-      border-color: rgba(139, 92, 246, 0.5);
-      transform: translateY(-1px);
-    }
-
-    .btn:active {
-      transform: translateY(0);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 8px 18px -6px #4f46e5;
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #8b5cf6, #6366f1);
-      box-shadow: 0 12px 22px -6px #4f46e5;
-    }
-
-    .intensity-slider-container {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      background: rgba(0, 0, 0, 0.3);
-      padding: 8px 18px;
-      border-radius: 40px;
-      border: 1px solid rgba(139, 92, 246, 0.25);
-    }
-
-    .intensity-slider-container label {
-      font-size: 0.85rem;
-      color: #b7b1cc;
-      font-weight: 500;
-    }
-
-    input[type="range"] {
-      width: 140px;
-      height: 4px;
-      -webkit-appearance: none;
-      background: linear-gradient(90deg, #8b5cf6, #3b82f6);
-      border-radius: 4px;
+    .control-btn:hover,
+    .control-btn:focus-visible {
+      background: rgba(40, 40, 50, 0.85);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: scale(1.05);
       outline: none;
-      cursor: pointer;
     }
 
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 18px;
-      height: 18px;
-      background: white;
-      border-radius: 50%;
-      box-shadow: 0 0 10px #8b5cf6;
-      border: 2px solid #a78bfa;
+    .control-btn:active {
+      transform: scale(0.96);
     }
 
-    /* active filter name */
-    .filter-name-badge {
-      background: rgba(139, 92, 246, 0.15);
-      border: 1px solid rgba(139, 92, 246, 0.3);
-      border-radius: 30px;
-      padding: 6px 18px;
-      font-size: 0.85rem;
-      color: #c4b5fd;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-      white-space: nowrap;
+    /* SVG icons (inline, no external library) */
+    .control-btn svg {
+      width: 1.6rem;
+      height: 1.6rem;
+      fill: currentColor;
+      display: block;
     }
 
-    /* ---------- FOOTNOTE / ERROR ---------- */
-    .error-message {
-      background: rgba(220, 38, 38, 0.15);
-      border: 1px solid rgba(220, 38, 38, 0.4);
-      color: #fca5a5;
-      padding: 10px 18px;
-      border-radius: 30px;
-      font-size: 0.85rem;
-      margin-top: 16px;
+    /* Hidden class for toggling icons */
+    .hidden {
+      display: none !important;
+    }
+
+    /* -------------------------------
+       Fallback message (hidden by default)
+    -------------------------------- */
+    .video-fallback {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #bbb;
+      background: #1a1d23;
+      padding: 1rem 2rem;
+      border-radius: 2rem;
+      font-size: 0.95rem;
       text-align: center;
+      width: 90%;
+      max-width: 400px;
+      border: 1px solid #2e3138;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .video-wrapper.fallback-active video {
       display: none;
     }
 
-    /* ---------- RESPONSIVE ---------- */
-    @media (max-width: 700px) {
-      .app-container { padding: 16px; border-radius: 32px; }
-      .status-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
-      .control-panel { flex-direction: column; align-items: stretch; }
-      .camera-controls { justify-content: center; }
-      .intensity-slider-container { justify-content: space-between; }
-      .btn { padding: 10px 16px; font-size: 0.85rem; }
+    .video-wrapper.fallback-active .video-fallback {
+      display: block;
+    }
+
+    /* -------------------------------
+       Accessibility & small screens
+    -------------------------------- */
+    @media (max-width: 480px) {
+      .controls {
+        gap: 0.5rem;
+        padding: 0.75rem 0.75rem 1rem;
+      }
+      .control-btn {
+        width: 2.8rem;
+        height: 2.8rem;
+      }
+      .control-btn svg {
+        width: 1.4rem;
+        height: 1.4rem;
+      }
+      .video-wrapper {
+        border-radius: 1rem;
+      }
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .control-btn,
+      .controls,
+      .video-wrapper video {
+        transition: none;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <!-- status header -->
-    <div class="status-bar">
-      <div class="logo-badge">
-        <div class="logo-icon">✨</div>
-        <div class="logo-text"><span>Gesture</span>Lens</div>
-      </div>
-      <div class="gesture-indicator">
-        <span>🖐️ <span id="fingerCountDisplay">0</span> fingers</span>
-        <span class="value" id="filterLabel">Natural</span>
-      </div>
-      <div class="tracking-status">
-        <span class="dot" id="trackingDot"></span>
-        <span id="trackingText">Ready</span>
-      </div>
+
+  <!-- Video wrapper: maintains 16:9, rounded corners, shadow -->
+  <div class="video-wrapper" id="videoWrapper">
+    <!-- 
+      HTML5 video with required attributes:
+      autoplay, muted, loop, playsinline, preload="metadata"
+      poster: a neutral dark placeholder (data URI to avoid extra file)
+    -->
+    <video
+      id="myVideo"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='9' viewBox='0 0 16 9'%3E%3Crect width='16' height='9' fill='%23161a1f'/%3E%3Ctext x='8' y='5.2' font-family='system-ui, sans-serif' font-size='1.2' fill='%233a3f4a' text-anchor='middle' dominant-baseline='middle'%3Eloading…%3C/text%3E%3C/svg%3E"
+      aria-label="Self-hosted video player"
+    >
+      <source src="video.mp4.mp4" type="video/mp4" />
+      <!-- Fallback message for unsupported browsers -->
+      <p>Your browser does not support HTML5 video. Please upgrade to a modern browser.</p>
+    </video>
+
+    <!-- Custom control buttons: play/pause and mute/unmute -->
+    <div class="controls" id="customControls">
+      <!-- Play/Pause button -->
+      <button class="control-btn" id="playPauseBtn" aria-label="Pause video" title="Pause">
+        <!-- Pause icon (visible when playing) -->
+        <svg id="pauseIcon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="6" y="4" width="4" height="16" rx="1" />
+          <rect x="14" y="4" width="4" height="16" rx="1" />
+        </svg>
+        <!-- Play icon (visible when paused) -->
+        <svg id="playIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z" />
+        </svg>
+      </button>
+
+      <!-- Mute/Unmute button -->
+      <button class="control-btn" id="muteBtn" aria-label="Unmute video" title="Unmute">
+        <!-- Muted icon (visible when muted) -->
+        <svg id="mutedIcon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 10v4h4l5 5V5L7 10H3z" />
+          <line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <!-- Unmuted icon (visible when unmuted) -->
+        <svg id="unmutedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 10v4h4l5 5V5L7 10H3z" />
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+          <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+        </svg>
+      </button>
     </div>
 
-    <!-- camera preview -->
-    <div class="camera-stage" id="cameraStage">
-      <video id="videoElement" autoplay playsinline muted></video>
-      <canvas id="outputCanvas"></canvas>
-      <div class="camera-off-message" id="cameraOffMessage">
-        <span>📷 Camera is off</span>
-        <span style="font-size: 0.9rem;">Click "Start Camera" to begin</span>
-      </div>
+    <!-- Fallback message (shown only if video fails / unsupported) -->
+    <div class="video-fallback" id="fallbackMsg">
+      ⚠️ Your browser cannot play this video.<br />
+      Please try a modern browser or download the file.
     </div>
-
-    <!-- control panel -->
-    <div class="control-panel">
-      <div class="camera-controls">
-        <button class="btn btn-primary" id="startBtn">▶ Start Camera</button>
-        <button class="btn" id="stopBtn" disabled>⏹ Stop</button>
-        <button class="btn" id="switchBtn" disabled>🔄 Switch</button>
-      </div>
-      <div class="intensity-slider-container">
-        <label for="intensitySlider">Intensity</label>
-        <input type="range" id="intensitySlider" min="0" max="1" step="0.01" value="0.8">
-      </div>
-      <div class="filter-name-badge" id="currentFilterName">Natural</div>
-    </div>
-
-    <!-- error message area -->
-    <div class="error-message" id="errorMessage"></div>
   </div>
 
-  <!-- main script -->
-  <script type="module">
-    // ============================================================
-    // GESTURE LENS — Real-time AI Face Filter with Hand Landmarks
-    // ============================================================
-    import { HandLandmarker, FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8";
+  <!-- -------------------------------
+       JavaScript: lazy play/pause, custom controls
+  -------------------------------- -->
+  <script>
+    (function() {
+      'use strict';
 
-    // ---------- DOM ELEMENTS ----------
-    const video = document.getElementById('videoElement');
-    const canvas = document.getElementById('outputCanvas');
-    const ctx = canvas.getContext('2d');
-    const cameraOffMsg = document.getElementById('cameraOffMessage');
-    const cameraStage = document.getElementById('cameraStage');
+      // ----- DOM references -----
+      const wrapper = document.getElementById('videoWrapper');
+      const video = document.getElementById('myVideo');
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const pauseIcon = document.getElementById('pauseIcon');
+      const playIcon = document.getElementById('playIcon');
+      const mutedIcon = document.getElementById('mutedIcon');
+      const unmutedIcon = document.getElementById('unmutedIcon');
+      const fallbackMsg = document.getElementById('fallbackMsg');
 
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const switchBtn = document.getElementById('switchBtn');
-    const intensitySlider = document.getElementById('intensitySlider');
+      // ----- 1. Fallback detection (if video fails to load or unsupported) -----
+      // Show fallback if video element can't play or source fails.
+      video.addEventListener('error', function() {
+        wrapper.classList.add('fallback-active');
+      });
 
-    const fingerCountDisplay = document.getElementById('fingerCountDisplay');
-    const filterLabel = document.getElementById('filterLabel');
-    const currentFilterName = document.getElementById('currentFilterName');
-    const trackingDot = document.getElementById('trackingDot');
-    const trackingText = document.getElementById('trackingText');
-    const errorMessage = document.getElementById('errorMessage');
-
-    // ---------- STATE ----------
-    let stream = null;
-    let videoTrack = null;
-    let facingMode = 'user';
-    let isCameraActive = false;
-    let animationFrameId = null;
-
-    // MediaPipe instances
-    let handLandmarker = null;
-    let faceLandmarker = null;
-    let lastVideoTime = -1;
-
-    // Gesture state
-    let currentFingerCount = 0;          // stable count after debounce
-    let rawFingerCount = 0;              // immediate detection
-    let lastGestureChangeTime = 0;
-    const GESTURE_DEBOUNCE_MS = 180;     // avoid flicker
-
-    // Filter parameters (interpolated)
-    let currentParams = {
-      brightness: 1.0,
-      contrast: 1.0,
-      saturation: 1.0,
-      warmth: 0.0,        // -1 to 1 (cool to warm)
-      glowIntensity: 0.0, // 0-1 extra glow
-      tintStrength: 0.0,  // additional color grading
-    };
-    let targetParams = { ...currentParams };
-
-    // Manual intensity (slider)
-    let masterIntensity = 0.8;
-
-    // Face region (normalized coords) for localized effects
-    let faceRegion = { x: 0.3, y: 0.2, w: 0.4, h: 0.5, detected: false };
-
-    // Hand position (normalized) for interaction mode
-    let handY = 0.5; // 0 top, 1 bottom
-    let handActive = false;
-
-    // ---------- GESTURE PRESETS ----------
-    // Each preset defines target filter params (absolute, before master intensity)
-    const PRESETS = {
-      0: { // natural
-        brightness: 1.0, contrast: 1.0, saturation: 1.0,
-        warmth: 0.0, glowIntensity: 0.0, tintStrength: 0.0,
-        name: 'Natural'
-      },
-      1: { // subtle warm + enhancement
-        brightness: 1.08, contrast: 1.05, saturation: 1.15,
-        warmth: 0.25, glowIntensity: 0.2, tintStrength: 0.15,
-        name: 'Warm Glow'
-      },
-      2: { // bright skin-tone + soft glow
-        brightness: 1.18, contrast: 1.02, saturation: 1.25,
-        warmth: 0.35, glowIntensity: 0.45, tintStrength: 0.25,
-        name: 'Radiant'
-      },
-      3: { // cinematic high-contrast
-        brightness: 1.05, contrast: 1.4, saturation: 1.2,
-        warmth: 0.1, glowIntensity: 0.25, tintStrength: 0.3,
-        name: 'Cinematic'
-      },
-      4: { // cool aesthetic
-        brightness: 1.06, contrast: 1.1, saturation: 1.1,
-        warmth: -0.35, glowIntensity: 0.15, tintStrength: 0.2,
-        name: 'Cool Tone'
-      },
-      5: { // premium glow / open palm
-        brightness: 1.22, contrast: 1.15, saturation: 1.3,
-        warmth: 0.2, glowIntensity: 0.7, tintStrength: 0.4,
-        name: 'Premium Glow'
+      // Also check if video source is not playable (e.g., codec/format)
+      if (video.canPlayType && video.canPlayType('video/mp4') === '') {
+        wrapper.classList.add('fallback-active');
       }
-    };
 
-    // ---------- UTILS ----------
-    function showError(msg) {
-      errorMessage.style.display = 'block';
-      errorMessage.textContent = msg;
-      setTimeout(() => {
-        if (errorMessage.textContent === msg) errorMessage.style.display = 'none';
-      }, 6000);
-    }
-
-    function setTrackingStatus(active, text = '') {
-      if (active) {
-        trackingDot.classList.remove('inactive');
-        trackingText.textContent = text || 'Tracking';
-      } else {
-        trackingDot.classList.add('inactive');
-        trackingText.textContent = text || 'Ready';
-      }
-    }
-
-    function updateGestureDisplay(count) {
-      fingerCountDisplay.textContent = count;
-    }
-
-    function updateFilterLabel(name) {
-      filterLabel.textContent = name;
-      currentFilterName.textContent = name;
-    }
-
-    // ---------- CAMERA CONTROL ----------
-    async function startCamera() {
-      if (isCameraActive) return;
-      try {
-        if (stream) {
-          stream.getTracks().forEach(t => t.stop());
-          stream = null;
-        }
-        const constraints = {
-          video: {
-            facingMode: facingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        };
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        videoTrack = stream.getVideoTracks()[0];
-
-        await video.play();
-        isCameraActive = true;
-        cameraOffMsg.style.display = 'none';
-        cameraStage.classList.add('active');
-
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        switchBtn.disabled = false;
-
-        // Initialize MediaPipe models (if not already)
-        if (!handLandmarker) await initMediaPipe();
-
-        // Start processing loop
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        processVideo();
-
-        setTrackingStatus(true, 'Tracking active');
-      } catch (err) {
-        console.error('Camera error:', err);
-        let msg = 'Camera access denied or not available.';
-        if (err.name === 'NotAllowedError') msg = 'Permission denied. Please allow camera access.';
-        else if (err.name === 'NotFoundError') msg = 'No camera device found.';
-        showError(msg);
-        setTrackingStatus(false, 'Camera error');
-      }
-    }
-
-    function stopCamera() {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-      }
-      video.srcObject = null;
-      isCameraActive = false;
-      cameraOffMsg.style.display = 'flex';
-      cameraStage.classList.remove('active');
-
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      switchBtn.disabled = true;
-
-      setTrackingStatus(false, 'Stopped');
-      // reset canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // reset finger count display
-      updateGestureDisplay(0);
-      updateFilterLabel('Natural');
-      // reset params
-      currentParams = { ...PRESETS[0] };
-      targetParams = { ...PRESETS[0] };
-    }
-
-    async function switchCamera() {
-      if (!isCameraActive) return;
-      facingMode = (facingMode === 'user') ? 'environment' : 'user';
-      stopCamera();
-      // small delay to allow stop
-      setTimeout(() => startCamera(), 150);
-    }
-
-    // ---------- MEDIAPIPE INITIALIZATION ----------
-    async function initMediaPipe() {
-      try {
-        const filesetResolver = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm"
-        );
-
-        // Hand Landmarker (for gestures)
-        handLandmarker = await HandLandmarker.createFromOptions(filesetResolver, {
-          baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-            delegate: "GPU"
-          },
-          runningMode: "VIDEO",
-          numHands: 2,
-          minHandDetectionConfidence: 0.6,
-          minHandPresenceConfidence: 0.6,
-          minTrackingConfidence: 0.6,
-        });
-
-        // Face Landmarker (for face region)
-        faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
-          baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-            delegate: "GPU"
-          },
-          runningMode: "VIDEO",
-          numFaces: 1,
-          minFaceDetectionConfidence: 0.5,
-          minFacePresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5,
-        });
-
-        console.log('MediaPipe models loaded');
-      } catch (err) {
-        console.error('MediaPipe init failed:', err);
-        showError('Failed to load AI models. Some features may not work.');
-      }
-    }
-
-    // ---------- FINGER COUNTING (from hand landmarks) ----------
-    function countRaisedFingers(landmarks) {
-      // landmarks: array of 21 {x, y, z} normalized
-      if (!landmarks || landmarks.length < 21) return 0;
-
-      // Finger tip and pip indices
-      const tipIdx = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky
-      const pipIdx = [3, 6, 10, 14, 18]; // thumb ip, index pip, etc.
-
-      let count = 0;
-
-      // Thumb: check distance from tip to MCP (or use angle) — simpler: x/y relation
-      // We'll use a distance heuristic between tip and MCP
-      const thumbTip = landmarks[4];
-      const thumbMcp = landmarks[2];
-      const thumbDist = Math.hypot(thumbTip.x - thumbMcp.x, thumbTip.y - thumbMcp.y);
-      // Also check if thumb is extended away from palm
-      const indexMcp = landmarks[5];
-      const thumbIndexDist = Math.hypot(thumbTip.x - indexMcp.x, thumbTip.y - indexMcp.y);
-      if (thumbIndexDist > 0.1 && thumbDist > 0.05) count++; // raised thumb
-
-      // Other four fingers: tip.y < pip.y indicates raised (in image coords, y increases downward)
-      for (let i = 1; i < 5; i++) {
-        const tip = landmarks[tipIdx[i]];
-        const pip = landmarks[pipIdx[i]];
-        if (tip.y < pip.y - 0.02) { // slightly raised
-          count++;
+      // ----- 2. Custom play/pause with icon toggle -----
+      function updatePlayPauseUI() {
+        if (video.paused) {
+          // Video is paused → show play icon, hide pause icon
+          pauseIcon.classList.add('hidden');
+          playIcon.classList.remove('hidden');
+          playPauseBtn.setAttribute('aria-label', 'Play video');
+          playPauseBtn.title = 'Play';
+          // When paused, keep controls visible (so user sees buttons)
+          wrapper.classList.add('controls-visible');
+        } else {
+          // Video is playing → show pause icon, hide play icon
+          pauseIcon.classList.remove('hidden');
+          playIcon.classList.add('hidden');
+          playPauseBtn.setAttribute('aria-label', 'Pause video');
+          playPauseBtn.title = 'Pause';
+          // Remove forced visibility (controls appear on hover/touch)
+          wrapper.classList.remove('controls-visible');
         }
       }
 
-      return Math.min(count, 5);
-    }
-
-    // ---------- FILTER APPLICATION (to canvas) ----------
-    function applyFiltersToCanvas() {
-      const w = canvas.width;
-      const h = canvas.height;
-      if (w === 0 || h === 0) return;
-
-      // 1. Draw video frame
-      ctx.drawImage(video, 0, 0, w, h);
-
-      // 2. Get image data for pixel manipulation
-      let imageData = ctx.getImageData(0, 0, w, h);
-      const data = imageData.data;
-
-      // 3. Interpolate current params toward target
-      const lerpFactor = 0.12;
-      currentParams.brightness += (targetParams.brightness - currentParams.brightness) * lerpFactor;
-      currentParams.contrast += (targetParams.contrast - currentParams.contrast) * lerpFactor;
-      currentParams.saturation += (targetParams.saturation - currentParams.saturation) * lerpFactor;
-      currentParams.warmth += (targetParams.warmth - currentParams.warmth) * lerpFactor;
-      currentParams.glowIntensity += (targetParams.glowIntensity - currentParams.glowIntensity) * lerpFactor;
-      currentParams.tintStrength += (targetParams.tintStrength - currentParams.tintStrength) * lerpFactor;
-
-      // Apply master intensity (scale effect strength)
-      const intensity = Math.max(0.1, masterIntensity);
-      const bright = 1.0 + (currentParams.brightness - 1.0) * intensity;
-      const contrast = 1.0 + (currentParams.contrast - 1.0) * intensity;
-      const sat = 1.0 + (currentParams.saturation - 1.0) * intensity;
-      const warm = currentParams.warmth * intensity;
-      const glow = currentParams.glowIntensity * intensity;
-      const tint = currentParams.tintStrength * intensity;
-
-      // 4. Apply pixel transformations
-      for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let b = data[i + 2];
-
-        // Brightness
-        r *= bright;
-        g *= bright;
-        b *= bright;
-
-        // Contrast
-        r = ((r / 255 - 0.5) * contrast + 0.5) * 255;
-        g = ((g / 255 - 0.5) * contrast + 0.5) * 255;
-        b = ((b / 255 - 0.5) * contrast + 0.5) * 255;
-
-        // Saturation (simple)
-        const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        r = gray + (r - gray) * sat;
-        g = gray + (g - gray) * sat;
-        b = gray + (b - gray) * sat;
-
-        // Warmth / cool tint
-        if (warm > 0) {
-          r += warm * 30 * intensity;
-          b -= warm * 15 * intensity;
-        } else if (warm < 0) {
-          b += Math.abs(warm) * 30 * intensity;
-          r -= Math.abs(warm) * 15 * intensity;
+      playPauseBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); // avoid triggering wrapper events
+        if (video.paused) {
+          video.play().catch(() => { /* Autoplay might be blocked, ignore */ });
+        } else {
+          video.pause();
         }
+        updatePlayPauseUI();
+      });
 
-        // Additional tint (purple/blue for cinematic)
-        if (tint > 0.01) {
-          r += tint * 10;
-          g += tint * 5;
-          b += tint * 25;
+      // Update UI whenever video state changes (play, pause, etc.)
+      video.addEventListener('play', updatePlayPauseUI);
+      video.addEventListener('pause', updatePlayPauseUI);
+
+      // ----- 3. Mute/unmute toggle with icon swap -----
+      function updateMuteUI() {
+        if (video.muted) {
+          // Muted → show muted icon
+          mutedIcon.classList.remove('hidden');
+          unmutedIcon.classList.add('hidden');
+          muteBtn.setAttribute('aria-label', 'Unmute video');
+          muteBtn.title = 'Unmute';
+        } else {
+          // Unmuted → show unmuted icon
+          mutedIcon.classList.add('hidden');
+          unmutedIcon.classList.remove('hidden');
+          muteBtn.setAttribute('aria-label', 'Mute video');
+          muteBtn.title = 'Mute';
         }
-
-        // Clamp
-        data[i] = Math.min(255, Math.max(0, r));
-        data[i + 1] = Math.min(255, Math.max(0, g));
-        data[i + 2] = Math.min(255, Math.max(0, b));
       }
 
-      // 5. Put back
-      ctx.putImageData(imageData, 0, 0);
+      muteBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        video.muted = !video.muted;
+        updateMuteUI();
+      });
 
-      // 6. Glow effect (using canvas blur on face region if possible)
-      if (glow > 0.05 && faceRegion.detected) {
-        // draw a soft blurred highlight over face region
-        ctx.save();
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = glow * 0.5;
-        ctx.filter = `blur(${Math.round(12 * glow)}px)`;
-        // Use face region as circle/ellipse
-        const fx = faceRegion.x * w;
-        const fy = faceRegion.y * h;
-        const fw = faceRegion.w * w;
-        const fh = faceRegion.h * h;
-        const grd = ctx.createRadialGradient(fx + fw/2, fy + fh/2, 10, fx + fw/2, fy + fh/2, Math.max(fw, fh)/1.5);
-        grd.addColorStop(0, `rgba(255, 240, 200, ${0.6 * glow})`);
-        grd.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.ellipse(fx + fw/2, fy + fh/2, fw/1.8, fh/1.8, 0, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
+      // Sync UI on volume/mute changes (e.g., via browser controls)
+      video.addEventListener('volumechange', updateMuteUI);
 
-    // ---------- PROCESS VIDEO FRAME ----------
-    async function processVideo() {
-      if (!isCameraActive || !video.videoWidth) {
-        animationFrameId = requestAnimationFrame(processVideo);
-        return;
-      }
+      // Initial UI sync (autoplay muted is default)
+      updatePlayPauseUI();
+      updateMuteUI();
 
-      const now = performance.now();
-
-      // Resize canvas to match video
-      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-      }
-
-      // Run detection only if video time changed
-      if (video.currentTime !== lastVideoTime) {
-        lastVideoTime = video.currentTime;
-
-        // --- Hand detection ---
-        if (handLandmarker) {
-          const handResults = handLandmarker.detectForVideo(video, now);
-          if (handResults && handResults.landmarks && handResults.landmarks.length > 0) {
-            // Use first hand for gesture (can be extended to average)
-            const landmarks = handResults.landmarks[0];
-            rawFingerCount = countRaisedFingers(landmarks);
-
-            // Get hand Y position (average of wrist and middle finger MCP)
-            const wrist = landmarks[0];
-            const middleMcp = landmarks[9];
-            handY = (wrist.y + middleMcp.y) / 2;
-            handActive = true;
-
-            // Debounce gesture change
-            if (rawFingerCount !== currentFingerCount) {
-              if (now - lastGestureChangeTime > GESTURE_DEBOUNCE_MS) {
-                currentFingerCount = rawFingerCount;
-                lastGestureChangeTime = now;
-                // Update target params based on new gesture
-                const preset = PRESETS[currentFingerCount] || PRESETS[0];
-                targetParams = { ...preset };
-                // Apply hand position modulation for intensity (if gesture is 1-5)
-                if (currentFingerCount > 0 && handActive) {
-                  // Hand higher (smaller y) => higher glow; lower => lower
-                  const heightFactor = Math.max(0, Math.min(1, 1 - handY * 1.2));
-                  // Add glow boost based on hand height
-                  targetParams.glowIntensity = Math.min(1.0, targetParams.glowIntensity + heightFactor * 0.3);
-                }
-                updateGestureDisplay(currentFingerCount);
-                updateFilterLabel(preset.name);
-              }
-            } else {
-              // still same count — update display
-              updateGestureDisplay(currentFingerCount);
-            }
+      // ----- 4. Lazy loading: play/pause based on viewport -----
+      // IntersectionObserver: play when at least 50% visible, pause otherwise.
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            // Video enters viewport → play (muted, autoplay already set, but just in case)
+            // Use a small timeout to avoid abrupt play when scrolling fast
+            video.play().catch(() => {
+              // Autoplay policy might block unmuted; but since muted, usually fine.
+              // If blocked, update UI to show paused state.
+              updatePlayPauseUI();
+            });
           } else {
-            // No hand detected — slowly return to natural (0)
-            if (currentFingerCount !== 0) {
-              if (now - lastGestureChangeTime > 400) {
-                currentFingerCount = 0;
-                lastGestureChangeTime = now;
-                targetParams = { ...PRESETS[0] };
-                updateGestureDisplay(0);
-                updateFilterLabel('Natural');
-              }
+            // Video leaves viewport → pause to save resources
+            if (!video.paused) {
+              video.pause();
             }
-            handActive = false;
           }
-        }
+        });
+      }, {
+        threshold: 0.5,        // trigger when 50% visible
+        rootMargin: '0px'      // no extra margin
+      });
 
-        // --- Face detection for region ---
-        if (faceLandmarker) {
-          const faceResults = faceLandmarker.detectForVideo(video, now);
-          if (faceResults && faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0) {
-            const landmarks = faceResults.faceLandmarks[0];
-            // Compute bounding box from landmarks
-            let minX = 1, minY = 1, maxX = 0, maxY = 0;
-            for (const lm of landmarks) {
-              if (lm.x < minX) minX = lm.x;
-              if (lm.y < minY) minY = lm.y;
-              if (lm.x > maxX) maxX = lm.x;
-              if (lm.y > maxY) maxY = lm.y;
+      // Start observing the wrapper (or video)
+      observer.observe(wrapper);
+
+      // ----- 5. Extra: show controls on touch devices (tap on video toggles overlay) -----
+      // On mobile, hover doesn't exist; we make sure controls are accessible.
+      // Tapping the video toggles controls visibility (play/pause handled by button).
+      // Also ensures the controls don't stay hidden forever.
+      video.addEventListener('click', function(e) {
+        // On touch devices, tap on video toggles the controls visibility
+        if (window.matchMedia('(hover: none)').matches) {
+          wrapper.classList.toggle('controls-visible');
+        }
+      });
+
+      // Also when user taps anywhere on wrapper on mobile, show controls briefly
+      wrapper.addEventListener('touchstart', function() {
+        if (window.matchMedia('(hover: none)').matches) {
+          wrapper.classList.add('controls-visible');
+          // Auto-hide after 2.5 seconds, but only if video is playing
+          clearTimeout(wrapper._hideControlsTimer);
+          wrapper._hideControlsTimer = setTimeout(() => {
+            if (!video.paused) {
+              wrapper.classList.remove('controls-visible');
             }
-            // Expand slightly
-            const pad = 0.08;
-            faceRegion = {
-              x: Math.max(0, minX - pad),
-              y: Math.max(0, minY - pad),
-              w: Math.min(1, maxX + pad) - Math.max(0, minX - pad),
-              h: Math.min(1, maxY + pad) - Math.max(0, minY - pad),
-              detected: true
-            };
-          } else {
-            faceRegion.detected = false;
-          }
+          }, 2500);
         }
+      }, { passive: true });
 
-        // Apply filters
-        applyFiltersToCanvas();
-      }
+      // ----- 6. Handle autoplay best practices -----
+      // If autoplay fails (rare with muted), we catch and update UI.
+      window.addEventListener('load', function() {
+        // Try to play if not already playing (in case IntersectionObserver hasn't fired)
+        // But only if video is in viewport — observer will handle.
+        // Just ensure video is muted at start (already set by attribute).
+        if (video.muted === false) {
+          video.muted = true; // enforce muted for autoplay policy
+          updateMuteUI();
+        }
+      });
 
-      animationFrameId = requestAnimationFrame(processVideo);
-    }
+      // Handle case where video is already in viewport on page load
+      // IntersectionObserver will fire immediately, so no extra code needed.
 
-    // ---------- EVENT LISTENERS ----------
-    startBtn.addEventListener('click', startCamera);
-    stopBtn.addEventListener('click', stopCamera);
-    switchBtn.addEventListener('click', switchCamera);
-
-    intensitySlider.addEventListener('input', (e) => {
-      masterIntensity = parseFloat(e.target.value);
-    });
-
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    });
-
-    // Check for mediaDevices support
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showError('Your browser does not support camera access. Please use a modern browser.');
-      startBtn.disabled = true;
-    }
-
-    // Initialize UI
-    updateGestureDisplay(0);
-    updateFilterLabel('Natural');
-    setTrackingStatus(false, 'Ready');
-    // Set initial target params to natural
-    targetParams = { ...PRESETS[0] };
-    currentParams = { ...PRESETS[0] };
-
-    // Pre-load MediaPipe in background (optional, but we do on start)
-    // For smoother experience, start loading now
-    (async () => {
-      try {
-        // lazy init when camera starts, but we can preload
-        // to avoid delay, we init on startCamera
-      } catch (e) {}
     })();
-
-    console.log('GestureLens ready — click Start Camera');
   </script>
+
 </body>
 </html>
