@@ -1,777 +1,1108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Self-hosted vertical video · clean embed</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>ESP32 Smart Safety System — Intro & Code</title>
+<style>
+/* ============================================================
+   FILE 1 — Fullscreen video intro (prefixed f1-)
+   ============================================================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { overflow-x: hidden; }
+body {
+  background:
+    radial-gradient(1200px 800px at 50% 12%, rgba(212,172,91,.18), transparent 38%),
+    radial-gradient(900px 600px at 50% 100%, rgba(73,116,171,.12), transparent 40%),
+    #070a0d;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100dvh;
+  color: #edf1f5;
+  -webkit-font-smoothing: antialiased;
+}
 
-  <style>
-    /* ============================================
-       Global reset & premium dark theme
-       ============================================ */
-    *,
-    *::before,
-    *::after {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+.hidden { display: none !important; }
 
-    html, body {
-      overflow-x: hidden;
-    }
+/* ---------- F1 fullscreen video section ---------- */
+.f1-fullscreen-video-section {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  background: #000;
+  isolation: isolate;
+  transition: opacity .6s ease;
+}
+.f1-fullscreen-video-section.fade-out { opacity: 0; }
+.f1-fullscreen-video-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(180deg, rgba(5,8,12,.7) 0%, rgba(5,8,12,.08) 18%, rgba(5,8,12,.28) 100%);
+}
+.f1-fullscreen-video-section video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+  pointer-events: none;
+}
+.f1-fs-fill {
+  object-fit: cover;
+  filter: blur(28px) brightness(.45) saturate(.9);
+  transform: scale(1.1);
+  opacity: 0;
+}
+.f1-fs-sharp { object-fit: cover; z-index: 1; }
+@media (min-width: 700px) {
+  .f1-fs-fill { opacity: 1; }
+  .f1-fs-sharp { object-fit: contain; }
+}
+.f1-fs-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,.1) 0%, rgba(0,0,0,.58) 100%);
+}
 
-    body {
-      background:
-        radial-gradient(1200px 800px at 50% 12%, rgba(212, 172, 91, 0.18), transparent 38%),
-        radial-gradient(900px 600px at 50% 100%, rgba(73, 116, 171, 0.12), transparent 40%),
-        #070a0d;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto,
-        "Helvetica Neue", Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      min-height: 100dvh;
-      padding: 1.5rem;
-      color: #edf1f5;
-      -webkit-font-smoothing: antialiased;
-    }
+/* Big play button */
+.f1-big-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6.75rem;
+  height: 6.75rem;
+  border-radius: 50%;
+  border: 1px solid rgba(234,198,118,.48);
+  background: linear-gradient(145deg, rgba(37,40,47,.9), rgba(12,14,18,.72));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #f8f2de;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 5;
+  box-shadow: 0 18px 40px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.12);
+  transition: opacity .35s ease, transform .35s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  animation: f1-pulse 2.8s ease-out infinite;
+}
+.f1-big-play:active { transform: translate(-50%, -50%) scale(.96); }
+.f1-big-play svg { width: 2.9rem; height: 2.9rem; fill: currentColor; margin-left: 7px; pointer-events: none; }
+.f1-big-play.is-hidden { opacity: 0; transform: translate(-50%, -50%) scale(.9); pointer-events: none; animation: none; }
+@keyframes f1-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(234,198,118,.26), 0 18px 40px rgba(0,0,0,.55); }
+  70%  { box-shadow: 0 0 0 24px rgba(234,198,118,0), 0 18px 40px rgba(0,0,0,.55); }
+  100% { box-shadow: 0 0 0 0 rgba(234,198,118,0), 0 18px 40px rgba(0,0,0,.55); }
+}
 
-    /* ============================================
-       FULL-SCREEN VIDEO SECTION
-       100vw × 100dvh, fixed visuals inside
-       ============================================ */
-    .fullscreen-video-section {
-      position: relative;
-      width: 100vw;
-      height: 100dvh;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #000;
-      isolation: isolate;
-      margin-left: calc(50% - 50vw);
-      margin-right: calc(50% - 50vw);
-      margin-top: -1.5rem;
-      margin-bottom: -1.5rem;
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-        inset 0 0 60px rgba(0, 0, 0, 0.8),
-        0 28px 60px rgba(0, 0, 0, 0.38);
-    }
+/* Corner controls */
+.f1-corner-controls {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  gap: .6rem;
+  z-index: 6;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .25s ease, transform .25s ease;
+  pointer-events: none;
+  background: rgba(18,20,25,.38);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 999px;
+  padding: .45rem .5rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.f1-fullscreen-video-section.controls-visible .f1-corner-controls,
+.f1-fullscreen-video-section:hover .f1-corner-controls {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.f1-control-btn {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(22,24,30,.72);
+  border-radius: 3rem;
+  width: 3rem;
+  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f4f7fb;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0;
+  transition: background .15s, transform .15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.f1-control-btn:hover { background: rgba(39,42,49,.88); transform: scale(1.05); }
+.f1-control-btn svg { width: 1.4rem; height: 1.4rem; fill: currentColor; display: block; pointer-events: none; }
 
-    .fullscreen-video-section::before,
-    .fullscreen-video-section::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 3;
-    }
+/* Skip button */
+.f1-skip-btn {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  right: 1rem;
+  z-index: 8;
+  border: 1px solid rgba(234,198,118,.4);
+  background: rgba(18,20,25,.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #f8f2de;
+  border-radius: 999px;
+  padding: .6rem 1.1rem;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
 
-    .fullscreen-video-section::before {
-      background:
-        linear-gradient(180deg, rgba(5, 8, 12, 0.7) 0%, rgba(5, 8, 12, 0.08) 18%, rgba(5, 8, 12, 0.28) 100%),
-        radial-gradient(120% 80% at 50% 42%, rgba(22, 28, 36, 0.12), transparent 60%);
-    }
+/* F1 fallback */
+.f1-video-fallback {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #dfe7f1;
+  background: rgba(18,23,30,.9);
+  padding: 1.2rem 1.6rem;
+  border-radius: 1rem;
+  text-align: center;
+  width: 88%;
+  max-width: 380px;
+  z-index: 7;
+}
+.f1-fullscreen-video-section.fallback-active video,
+.f1-fullscreen-video-section.fallback-active .f1-big-play,
+.f1-fullscreen-video-section.fallback-active .f1-corner-controls {
+  display: none;
+}
+.f1-fullscreen-video-section.fallback-active .f1-video-fallback { display: block; }
 
-    .fullscreen-video-section::after {
-      inset: 2.5% 2.5% auto auto;
-      width: 30vmin;
-      height: 30vmin;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(220, 185, 102, 0.22), transparent 64%);
-      filter: blur(32px);
-      opacity: 0.8;
-    }
+@media (max-width: 480px) {
+  .f1-big-play { width: 5.4rem; height: 5.4rem; }
+  .f1-big-play svg { width: 2.3rem; height: 2.3rem; margin-left: 5px; }
+  .f1-control-btn { width: 2.75rem; height: 2.75rem; }
+  .f1-control-btn svg { width: 1.25rem; height: 1.25rem; }
+}
 
-    .fullscreen-video-section video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      border: 0;
-      pointer-events: none;
-    }
+/* ============================================================
+   FILE 2 — Code page (prefixed f2-)
+   ============================================================ */
+.f2-code-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: max(20px, env(safe-area-inset-top)) 16px 40px;
+  animation: f2-fadeIn .7s ease;
+}
+@keyframes f2-fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.f2-code-page h1 { font-size: 1.4rem; margin-bottom: 4px; color: #f8f2de; }
+.f2-code-page p.f2-sub { margin-bottom: 16px; color: #98a2b3; font-size: .95rem; }
+.f2-card {
+  background: rgba(18,24,38,.85);
+  border: 1px solid rgba(234,198,118,.22);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.f2-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  flex-wrap: wrap;
+}
+.f2-file {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: .85rem;
+  color: #98a2b3;
+}
+.f2-copy-btn {
+  cursor: pointer;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: .95rem;
+  font-weight: 700;
+  background: linear-gradient(145deg, #e6c36f, #c79a3b);
+  color: #1a1405;
+  min-height: 44px;
+}
+.f2-copy-btn.done { background: #4ade80; }
+.f2-codebox { background: #070b12; max-height: 70vh; overflow: auto; }
+.f2-codebox pre {
+  margin: 0;
+  padding: 16px;
+  color: #e2e8f0;
+  font: 13px/1.55 ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  tab-size: 2;
+}
+.f2-foot { display: flex; justify-content: center; padding: 14px; }
+.f2-replay {
+  display: block;
+  margin: 18px auto 0;
+  background: none;
+  border: 0;
+  color: #98a2b3;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: .9rem;
+}
 
-    .fs-fill {
-      object-fit: cover;
-      filter: blur(28px) brightness(0.45) saturate(0.9);
-      transform: scale(1.1);
-      opacity: 0;
-    }
-
-    .fs-sharp {
-      object-fit: cover;
-      z-index: 1;
-    }
-
-    @media (min-width: 700px) {
-      .fs-fill { opacity: 1; }
-      .fs-sharp { object-fit: contain; }
-    }
-
-    .fs-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      pointer-events: none;
-      background:
-        radial-gradient(
-          120% 80% at 50% 50%,
-          rgba(0, 0, 0, 0.1) 0%,
-          rgba(0, 0, 0, 0.58) 100%
-        );
-    }
-
-    /* ============================================
-       BIG CENTERED PLAY BUTTON
-       High-end soft-glass glow
-       ============================================ */
-    .big-play {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 6.75rem;
-      height: 6.75rem;
-      border-radius: 50%;
-      border: 1px solid rgba(234, 198, 118, 0.48);
-      background:
-        linear-gradient(145deg, rgba(37, 40, 47, 0.9), rgba(12, 14, 18, 0.72));
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      color: #f8f2de;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      padding: 0;
-      z-index: 5;
-      box-shadow:
-        0 0 0 0 rgba(234, 198, 118, 0.26),
-        0 18px 40px rgba(0, 0, 0, 0.55),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      transition:
-        opacity 0.35s ease,
-        transform 0.35s ease,
-        background 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      animation: bigPlayPulse 2.8s ease-out infinite;
-    }
-
-    .big-play:hover,
-    .big-play:focus-visible {
-      background: linear-gradient(145deg, rgba(52, 57, 66, 0.95), rgba(17, 20, 25, 0.78));
-      border-color: rgba(234, 198, 118, 0.72);
-      box-shadow:
-        0 0 0 10px rgba(234, 198, 118, 0.08),
-        0 18px 40px rgba(0, 0, 0, 0.55),
-        inset 0 1px 0 rgba(255, 255, 255, 0.14);
-      outline: none;
-    }
-
-    .big-play:active {
-      transform: translate(-50%, -50%) scale(0.96);
-    }
-
-    .big-play svg {
-      width: 2.9rem;
-      height: 2.9rem;
-      fill: currentColor;
-      margin-left: 7px;
-      pointer-events: none;
-      filter: drop-shadow(0 0 10px rgba(255, 227, 163, 0.35));
-    }
-
-    .big-play.is-hidden {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.9);
-      pointer-events: none;
-      animation: none;
-    }
-
-    @keyframes bigPlayPulse {
-      0% {
-        box-shadow:
-          0 0 0 0 rgba(234, 198, 118, 0.26),
-          0 18px 40px rgba(0, 0, 0, 0.55),
-          inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      }
-      70% {
-        box-shadow:
-          0 0 0 24px rgba(234, 198, 118, 0),
-          0 18px 40px rgba(0, 0, 0, 0.55),
-          inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      }
-      100% {
-        box-shadow:
-          0 0 0 0 rgba(234, 198, 118, 0),
-          0 18px 40px rgba(0, 0, 0, 0.55),
-          inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      }
-    }
-
-    /* ============================================
-       CORNER CONTROLS (appear on tap/hover, auto-hide)
-       ============================================ */
-    .corner-controls {
-      position: absolute;
-      right: 1rem;
-      bottom: 1rem;
-      display: flex;
-      gap: 0.6rem;
-      z-index: 6;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 0.25s ease, transform 0.25s ease;
-      pointer-events: none;
-      background: rgba(18, 20, 25, 0.38);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 999px;
-      padding: 0.45rem 0.5rem;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
-    }
-
-    .fullscreen-video-section.controls-visible .corner-controls,
-    .fullscreen-video-section:hover .corner-controls {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-
-    .control-btn {
-      appearance: none;
-      -webkit-appearance: none;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(22, 24, 30, 0.72);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 3rem;
-      width: 3rem;
-      height: 3rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: #f4f7fb;
-      cursor: pointer;
-      padding: 0;
-      font-size: 0;
-      line-height: 1;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.28);
-      transition: background 0.15s ease, transform 0.15s ease,
-        border-color 0.15s ease, box-shadow 0.15s ease;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-
-    .control-btn:hover,
-    .control-btn:focus-visible {
-      background: rgba(39, 42, 49, 0.88);
-      border-color: rgba(224, 187, 110, 0.45);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 20px rgba(0, 0, 0, 0.34);
-      transform: scale(1.05);
-      outline: none;
-    }
-
-    .control-btn:active {
-      transform: scale(0.96);
-    }
-
-    .control-btn svg {
-      width: 1.4rem;
-      height: 1.4rem;
-      fill: currentColor;
-      display: block;
-      pointer-events: none;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* ============================================
-       Fallback message
-       ============================================ */
-    .video-fallback {
-      display: none;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: #dfe7f1;
-      background: rgba(18, 23, 30, 0.9);
-      padding: 1.2rem 1.6rem;
-      border-radius: 1rem;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      text-align: center;
-      width: 88%;
-      max-width: 380px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45);
-      z-index: 7;
-    }
-
-    .fullscreen-video-section.fallback-active video,
-    .fullscreen-video-section.fallback-active .big-play,
-    .fullscreen-video-section.fallback-active .corner-controls {
-      display: none;
-    }
-
-    .fullscreen-video-section.fallback-active .video-fallback {
-      display: block;
-    }
-
-    /* ============================================
-       Small-screen refinements
-       ============================================ */
-    @media (max-width: 480px) {
-      body { padding: 0.75rem; }
-      .big-play {
-        width: 5.4rem;
-        height: 5.4rem;
-      }
-      .big-play svg {
-        width: 2.3rem;
-        height: 2.3rem;
-        margin-left: 5px;
-      }
-      .corner-controls {
-        right: 0.75rem;
-        bottom: 0.75rem;
-        gap: 0.5rem;
-        padding: 0.38rem 0.42rem;
-      }
-      .control-btn {
-        width: 2.75rem;
-        height: 2.75rem;
-      }
-      .control-btn svg {
-        width: 1.25rem;
-        height: 1.25rem;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .big-play,
-      .control-btn,
-      .corner-controls,
-      .fullscreen-video-section video {
-        animation: none !important;
-        transition: none;
-      }
-    }
-  </style>
+@media (prefers-reduced-motion: reduce) {
+  .f1-big-play, .f2-code-page { animation: none !important; }
+}
+</style>
 </head>
 <body>
 
-  <!-- ============================================
-       FULL-SCREEN VIDEO SECTION
-       - Blurred, darkened fill (desktop sides)
-       - Sharp centered copy (contain on desktop, cover on mobile)
-       - Big centered Play button over the paused first frame
-       - Corner controls appear on tap/hover
-       ============================================ -->
-  <section class="fullscreen-video-section" id="fsVideoSection" aria-label="Full-screen video player">
+<!-- ============================================================
+     FILE 1 — Fullscreen video intro
+     ============================================================ -->
+<section class="f1-fullscreen-video-section" id="f1VideoSection" aria-label="Intro video">
+  <video class="f1-fs-fill" id="f1FillVideo" muted playsinline preload="auto">
+    <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
+  </video>
+  <video id="f1MyVideo" class="f1-fs-sharp" muted playsinline preload="auto">
+    <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
+  </video>
+  <div class="f1-fs-overlay" aria-hidden="true"></div>
 
-    <!-- Blurred fill copy (decorative, muted, silent) -->
-    <video
-      class="fs-fill"
-      id="fillVideo"
-      muted
-      playsinline
-      preload="auto"
-    >
-      <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
-    </video>
+  <button class="f1-skip-btn" id="f1SkipBtn" type="button">Skip ›</button>
 
-    <!-- Sharp centered copy (the one JS syncs with the MP3) -->
-    <video
-      id="myVideo"
-      class="fs-sharp"
-      muted
-      playsinline
-      preload="auto"
-    >
-      <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
-      <p>Your browser does not support HTML5 video. Please upgrade to a modern browser.</p>
-    </video>
+  <button class="f1-big-play" id="f1BigPlayBtn" type="button" aria-label="Play video with sound" title="Play">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
+    </svg>
+  </button>
 
-    <!-- Subtle gradient overlay for text readability -->
-    <div class="fs-overlay" aria-hidden="true"></div>
-
-    <!-- Big centered Play button -->
-    <button
-      class="big-play"
-      id="bigPlayBtn"
-      type="button"
-      aria-label="Play video with sound"
-      title="Play"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
+  <div class="f1-corner-controls" id="f1CornerControls">
+    <button class="f1-control-btn" id="f1PlayPauseBtn" type="button" aria-label="Pause" title="Pause">
+      <svg id="f1PauseIcon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+        <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+      </svg>
+      <svg id="f1PlayIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
       </svg>
     </button>
+    <button class="f1-control-btn" id="f1MuteBtn" type="button" aria-label="Mute audio" title="Mute">
+      <svg id="f1MutedIcon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
+        <line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+        <line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+      </svg>
+      <svg id="f1UnmutedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
+        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path>
+        <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
+      </svg>
+    </button>
+    <button class="f1-control-btn" id="f1FsToggleBtn" type="button" aria-label="Enter fullscreen" title="Fullscreen">
+      <svg id="f1FsEnterIcon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"></path>
+      </svg>
+      <svg id="f1FsExitIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10 4v4H6v2h6V4h-2zm4 0h-2v6h6V8h-4V4zM4 14v2h4v4h2v-6H4zm10 0v6h2v-4h4v-2h-6z"></path>
+      </svg>
+    </button>
+  </div>
 
-    <!-- Corner controls: pause/play, mute/unmute, fullscreen -->
-    <div class="corner-controls" id="cornerControls">
-      <!-- Play / Pause -->
-      <button
-        class="control-btn"
-        id="playPauseBtn"
-        type="button"
-        aria-label="Pause"
-        title="Pause"
-      >
-        <svg id="pauseIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="6" y="4" width="4" height="16" rx="1"></rect>
-          <rect x="14" y="4" width="4" height="16" rx="1"></rect>
-        </svg>
-        <svg id="playIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
-        </svg>
-      </button>
+  <div class="f1-video-fallback" id="f1FallbackMsg">
+    ⚠️ Your browser cannot play this video or audio.<br /><br />
+    <button class="f2-copy-btn" id="f1FallbackContinue" type="button">Continue to code</button>
+  </div>
+</section>
 
-      <!-- Mute / Unmute -->
-      <button
-        class="control-btn"
-        id="muteBtn"
-        type="button"
-        aria-label="Mute audio"
-        title="Mute"
-      >
-        <svg id="mutedIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
-          <line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-          <line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-        </svg>
-        <svg id="unmutedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
-          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path>
-          <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
-        </svg>
-      </button>
+<!-- F1 hidden audio -->
+<audio id="f1MyAudio" preload="auto" src="SaveTik.io_7687661810236869909.mp3"></audio>
 
-      <!-- Enter / Exit fullscreen (manual only) -->
-      <button
-        class="control-btn"
-        id="fsToggleBtn"
-        type="button"
-        aria-label="Enter fullscreen"
-        title="Fullscreen"
-      >
-        <svg id="fsEnterIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"></path>
-        </svg>
-        <svg id="fsExitIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M10 4v4H6v2h6V4h-2zm4 0h-2v6h6V8h-4V4zM4 14v2h4v4h2v-6H4zm10 0v6h2v-4h4v-2h-6z"></path>
-        </svg>
-      </button>
+<!-- ============================================================
+     FILE 2 — Code page (hidden initially)
+     ============================================================ -->
+<main id="f2CodePage" class="f2-code-page hidden">
+  <h1>ESP32 Smart Safety System – v7</h1>
+  <p class="f2-sub">Copy button chap dile pura code copy hoye jabe (419 lines).</p>
+  <div class="f2-card">
+    <div class="f2-bar">
+      <span class="f2-file">esp32_smart_safety.txt</span>
+      <button class="f2-copy-btn" id="f2CopyTop" type="button">Copy code</button>
     </div>
+    <div class="f2-codebox">
+<pre id="f2Code">/*
+ * ESP32 Smart Safety System — FINAL v7 (Firebase)
+ * - Buzzer : ultrasonic -&gt; distance-based beep, water -&gt; 2 Hz blink
+ * - Motor  : CONTINUOUS ON while object in zone OR water detected
+ * - Water  : auto-calibrates dry baseline at boot (wet = value DROPS)
+ * - GPS    : auto-baud, last known location saved to flash
+ * - Firebase: location pushed every 5 s from a SEPARATE task (core 0),
+ *             so buzzer / motor / ultrasonic timing is never blocked.
+ */
 
-    <!-- Fallback message -->
-    <div class="video-fallback" id="fallbackMsg">
-      ⚠️ Your browser cannot play this video or audio.<br />
-      Please try a modern browser or download the files.
+#include &lt;WiFi.h&gt;
+#include &lt;WiFiClientSecure.h&gt;
+#include &lt;HTTPClient.h&gt;
+#include &lt;Preferences.h&gt;
+#include &lt;TinyGPSPlus.h&gt;
+#include &lt;HardwareSerial.h&gt;
+
+// ---------------- WIFI ----------------
+const char* WIFI_SSID = &quot;TECNO CAMON 40 Pro&quot;;
+const char* WIFI_PASS = &quot;12345678&quot;;
+
+// ---------------- FIREBASE ----------------
+const char* FB_URL    = &quot;https://my-website-ctg-default-rtdb.firebaseio.com&quot;;
+const char* FB_SECRET = &quot;&quot;;          // optional: Database secret. Khali thakle auth lage na
+const uint32_t PUSH_PERIOD_MS = 5000;
+
+// ---------------- PINS ----------------
+#define PIN_TRIG        5
+#define PIN_ECHO        18
+#define PIN_BUZZER      14
+#define PIN_MOTOR       26
+#define PIN_WATER       34
+#define GPS_RX_PIN      16   // GPS TX -&gt; ESP32 GPIO16
+#define GPS_TX_PIN      17
+
+// ---------------- SETTINGS ----------------
+#define ENABLE_WATER_ALERT   true
+#define WATER_WET_IS_HIGHER  false   // tomar sensor-e panite value kome
+
+const float    DETECT_ENTER_CM   = 50.0f;
+const float    DETECT_RELEASE_CM = 55.0f;
+const float    MAX_RANGE_CM      = 400.0f;
+const uint32_t ULTRASONIC_PERIOD = 60;
+const uint32_t WATER_PERIOD      = 200;
+const unsigned long ECHO_TIMEOUT_US = 25000UL;
+const uint8_t  NO_ECHO_CLEAR_COUNT  = 3;
+const uint8_t  CONFIRM_HITS         = 2;
+
+const int      WATER_DELTA         = 600;
+const int      WATER_HYST          = 300;
+const uint8_t  WATER_CONFIRM_COUNT = 5;
+const uint32_t WATER_CAL_MS        = 1500;
+
+const uint32_t BEEP_ON_MS = 100;
+
+// ---------------- OBJECTS ----------------
+TinyGPSPlus    gps;
+HardwareSerial gpsSerial(2);
+Preferences    prefs;
+
+// ---------------- STATE ----------------
+uint32_t lastUltrasonicMs = 0;
+float    filteredDistance = MAX_RANGE_CM;
+float    rawHistory[3]    = { MAX_RANGE_CM, MAX_RANGE_CM, MAX_RANGE_CM };
+uint8_t  histIdx = 0, noEchoCount = 0, hitCount = 0;
+bool     objectInZone = false;
+uint32_t cycleStartMs = 0;
+
+uint32_t lastWaterMs = 0;
+int      waterRaw = 0, waterBaseline = 0;
+bool     waterCalibrated = false, waterDetected = false;
+uint8_t  waterWetCount = 0, waterDryCount = 0;
+
+// GPS / location (shared with push task)
+volatile double lastLat = 0, lastLng = 0;
+volatile bool   hasLast = false;
+volatile bool   gpsLive = false;
+volatile uint32_t gpsSats = 0;
+volatile float  gpsSpeed = 0;
+double   savedLat = 0, savedLng = 0;
+uint32_t lastSaveMs = 0, lastGpsPrintMs = 0, lastWifiTry = 0;
+
+// =====================================================
+//  WiFi
+// =====================================================
+void connectWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.printf(&quot;[WIFI] Connecting to %s&quot;, WIFI_SSID);
+  uint32_t t = millis();
+  while (WiFi.status() != WL_CONNECTED &amp;&amp; millis() - t &lt; 15000) {
+    delay(300);
+    Serial.print(&quot;.&quot;);
+  }
+  Serial.println();
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print(&quot;[WIFI] Connected. IP: &quot;);
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println(&quot;[WIFI] Failed, retrying in background&quot;);
+  }
+}
+
+void keepWiFiAlive() {
+  if (WiFi.status() == WL_CONNECTED) return;
+  if (millis() - lastWifiTry &lt; 10000) return;
+  lastWifiTry = millis();
+  Serial.println(&quot;[WIFI] Reconnecting...&quot;);
+  WiFi.disconnect();
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+}
+
+// =====================================================
+//  Firebase push task (runs on core 0, never blocks loop())
+// =====================================================
+void pushTask(void* arg) {
+  for (;;) {
+    vTaskDelay(PUSH_PERIOD_MS / portTICK_PERIOD_MS);
+    if (!hasLast || WiFi.status() != WL_CONNECTED) continue;
+
+    char body[220];
+    snprintf(body, sizeof(body),
+      &quot;{\&quot;lat\&quot;:%.6f,\&quot;lng\&quot;:%.6f,\&quot;sats\&quot;:%lu,\&quot;speed\&quot;:%.2f,\&quot;live\&quot;:%s,&quot;
+      &quot;\&quot;ts\&quot;:{\&quot;.sv\&quot;:\&quot;timestamp\&quot;}}&quot;,
+      (double)lastLat, (double)lastLng, (unsigned long)gpsSats,
+      (double)gpsSpeed, gpsLive ? &quot;true&quot; : &quot;false&quot;);
+
+    String url = String(FB_URL) + &quot;/location.json&quot;;
+    if (strlen(FB_SECRET) &gt; 0) url += String(&quot;?auth=&quot;) + FB_SECRET;
+
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient http;
+    http.setTimeout(6000);
+    if (!http.begin(client, url)) continue;
+    http.addHeader(&quot;Content-Type&quot;, &quot;application/json&quot;);
+    int code = http.PUT((uint8_t*)body, strlen(body));
+    http.end();
+    Serial.printf(&quot;[PUSH] firebase status: %d\n&quot;, code);
+  }
+}
+
+// =====================================================
+//  GPS
+// =====================================================
+bool listenForNMEA(uint32_t baud, uint32_t ms) {
+  gpsSerial.end();
+  gpsSerial.begin(baud, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+  uint32_t t = millis();
+  int dollars = 0;
+  while (millis() - t &lt; ms) {
+    while (gpsSerial.available()) {
+      if (gpsSerial.read() == '$') dollars++;
+    }
+    if (dollars &gt;= 2) return true;
+    delay(5);
+  }
+  return false;
+}
+
+void detectGpsBaud() {
+  const uint32_t bauds[] = { 9600, 38400, 115200, 4800 };
+  for (uint8_t i = 0; i &lt; 4; i++) {
+    Serial.printf(&quot;[GPS] Trying %lu baud... &quot;, (unsigned long)bauds[i]);
+    if (listenForNMEA(bauds[i], 1500)) {
+      Serial.println(&quot;DATA OK&quot;);
+      return;
+    }
+    Serial.println(&quot;no data&quot;);
+  }
+  Serial.println(&quot;[GPS] No data. Check wiring (GPS TX -&gt; GPIO16, VCC, GND)&quot;);
+  gpsSerial.end();
+  gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+}
+
+void serviceGPS() {
+  while (gpsSerial.available() &gt; 0) {
+    gps.encode(gpsSerial.read());
+  }
+  gpsSats = gps.satellites.isValid() ? gps.satellites.value() : 0;
+  gpsSpeed = gps.speed.isValid() ? gps.speed.kmph() : 0;
+
+  if (gps.location.isValid() &amp;&amp; gps.location.age() &lt; 5000 &amp;&amp;
+      gps.location.lat() != 0.0) {
+    lastLat = gps.location.lat();
+    lastLng = gps.location.lng();
+    hasLast = true;
+    gpsLive = true;
+  } else {
+    gpsLive = false;
+  }
+}
+
+void saveLocationIfNeeded() {
+  if (!hasLast || !gpsLive) return;
+  if (millis() - lastSaveMs &lt; 30000) return;
+  double la = lastLat, ln = lastLng;
+  if (fabs(la - savedLat) &lt; 0.0001 &amp;&amp; fabs(ln - savedLng) &lt; 0.0001 &amp;&amp;
+      savedLat != 0) return;
+  lastSaveMs = millis();
+  savedLat = la; savedLng = ln;
+  prefs.putDouble(&quot;lat&quot;, la);
+  prefs.putDouble(&quot;lng&quot;, ln);
+}
+
+void printGPS() {
+  Serial.println(&quot;---------- GPS ----------&quot;);
+  if (gpsLive) {
+    Serial.printf(&quot;Fix: VALID  Lat: %.6f  Lon: %.6f  Sat: %lu\n&quot;,
+                  (double)lastLat, (double)lastLng, (unsigned long)gpsSats);
+  } else {
+    Serial.printf(&quot;Fix: NO FIX  Sat: %lu  Chars: %lu\n&quot;,
+                  (unsigned long)gpsSats, (unsigned long)gps.charsProcessed());
+    if (hasLast) Serial.printf(&quot;Last known: %.6f, %.6f\n&quot;, (double)lastLat, (double)lastLng);
+  }
+  Serial.printf(&quot;WiFi: %s\n&quot;, WiFi.status() == WL_CONNECTED ? &quot;connected&quot; : &quot;disconnected&quot;);
+  Serial.println(&quot;-------------------------&quot;);
+}
+
+// =====================================================
+//  Ultrasonic
+// =====================================================
+float readUltrasonicCM() {
+  digitalWrite(PIN_TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(PIN_TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(PIN_TRIG, LOW);
+
+  unsigned long dur = pulseIn(PIN_ECHO, HIGH, ECHO_TIMEOUT_US);
+  if (dur == 0) return -1.0f;
+
+  float cm = dur * 0.0343f / 2.0f;
+  if (cm &lt;= 2.0f || cm &gt; MAX_RANGE_CM) return -1.0f;
+  return cm;
+}
+
+float filterDistance(float newReading) {
+  if (newReading &lt; 0) {
+    noEchoCount++;
+    rawHistory[histIdx] = MAX_RANGE_CM;
+    histIdx = (histIdx + 1) % 3;
+    if (noEchoCount &gt;= NO_ECHO_CLEAR_COUNT) filteredDistance = MAX_RANGE_CM;
+    return filteredDistance;
+  }
+  noEchoCount = 0;
+
+  rawHistory[histIdx] = newReading;
+  histIdx = (histIdx + 1) % 3;
+
+  float a = rawHistory[0], b = rawHistory[1], c = rawHistory[2];
+  float med;
+  if ((a &lt;= b &amp;&amp; b &lt;= c) || (c &lt;= b &amp;&amp; b &lt;= a))      med = b;
+  else if ((b &lt;= a &amp;&amp; a &lt;= c) || (c &lt;= a &amp;&amp; a &lt;= b)) med = a;
+  else                                               med = c;
+
+  if (fabs(med - filteredDistance) &gt; 30.0f) filteredDistance = med;
+  else filteredDistance = 0.5f * med + 0.5f * filteredDistance;
+  return filteredDistance;
+}
+
+uint32_t blinkIntervalForDistance(float cm) {
+  if (cm &lt;= 10.0f) return 200;
+  if (cm &lt;= 20.0f) return 300;
+  if (cm &lt;= 30.0f) return 500;
+  if (cm &lt;= 40.0f) return 700;
+  return 1000;
+}
+
+// =====================================================
+//  Outputs
+// =====================================================
+void updateOutputs() {
+  uint32_t now = millis();
+  bool proximityBeep = false;
+
+  if (objectInZone) {
+    uint32_t period = blinkIntervalForDistance(filteredDistance);
+    uint32_t onMs   = (BEEP_ON_MS &lt; period / 2) ? BEEP_ON_MS : period / 2;
+    uint32_t phase  = now - cycleStartMs;
+    if (phase &gt;= period) { cycleStartMs = now; phase = 0; }
+    proximityBeep = (phase &lt; onMs);
+  } else {
+    cycleStartMs = now;
+  }
+
+  bool waterActive = ENABLE_WATER_ALERT &amp;&amp; waterCalibrated &amp;&amp; waterDetected;
+  bool waterBeep   = waterActive &amp;&amp; ((now / 250) &amp; 1);
+
+  digitalWrite(PIN_BUZZER, (proximityBeep || waterBeep) ? HIGH : LOW);
+  digitalWrite(PIN_MOTOR,  (objectInZone || waterActive) ? HIGH : LOW);
+}
+
+// =====================================================
+//  Water
+// =====================================================
+void calibrateWater() {
+  Serial.println(&quot;[WATER] Calibrating dry baseline... keep sensor DRY&quot;);
+  uint32_t start = millis();
+  long sum = 0; int n = 0;
+  while (millis() - start &lt; WATER_CAL_MS) {
+    sum += analogRead(PIN_WATER);
+    n++;
+    delay(20);
+  }
+  waterBaseline = (n &gt; 0) ? (int)(sum / n) : 0;
+  waterCalibrated = true;
+  waterDetected = false;
+  waterWetCount = waterDryCount = 0;
+  Serial.printf(&quot;[WATER] Baseline = %d\n&quot;, waterBaseline);
+}
+
+void updateWater() {
+  waterRaw = analogRead(PIN_WATER);
+  if (!waterCalibrated) return;
+
+  int change = WATER_WET_IS_HIGHER ? (waterRaw - waterBaseline)
+                                   : (waterBaseline - waterRaw);
+
+  if (change &gt; WATER_DELTA) {
+    waterDryCount = 0;
+    if (waterWetCount &lt; 255) waterWetCount++;
+  } else if (change &lt; (WATER_DELTA - WATER_HYST)) {
+    waterWetCount = 0;
+    if (waterDryCount &lt; 255) waterDryCount++;
+  }
+
+  bool newState = waterDetected;
+  if (!waterDetected &amp;&amp; waterWetCount &gt;= WATER_CONFIRM_COUNT) newState = true;
+  if ( waterDetected &amp;&amp; waterDryCount &gt;= WATER_CONFIRM_COUNT) newState = false;
+
+  if (newState != waterDetected) {
+    waterDetected = newState;
+    Serial.printf(&quot;[WATER] %s (raw=%d, baseline=%d)\n&quot;,
+                  waterDetected ? &quot;DETECTED&quot; : &quot;clear&quot;, waterRaw, waterBaseline);
+  }
+}
+
+// =====================================================
+//  SETUP
+// =====================================================
+void setup() {
+  Serial.begin(115200);
+  delay(200);
+  Serial.println(&quot;\n=== ESP32 Smart Safety System booting ===&quot;);
+
+  pinMode(PIN_TRIG, OUTPUT);
+  pinMode(PIN_ECHO, INPUT);
+  pinMode(PIN_BUZZER, OUTPUT);
+  pinMode(PIN_MOTOR,  OUTPUT);
+  digitalWrite(PIN_BUZZER, LOW);
+  digitalWrite(PIN_MOTOR,  LOW);
+
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
+
+  prefs.begin(&quot;gps&quot;, false);
+  savedLat = prefs.getDouble(&quot;lat&quot;, 0.0);
+  savedLng = prefs.getDouble(&quot;lng&quot;, 0.0);
+  if (savedLat != 0.0 || savedLng != 0.0) {
+    lastLat = savedLat; lastLng = savedLng; hasLast = true;
+    Serial.printf(&quot;[GPS] Loaded last known: %.6f, %.6f\n&quot;, savedLat, savedLng);
+  }
+
+  detectGpsBaud();
+  calibrateWater();
+  connectWiFi();
+
+  // Firebase push alada task-e (core 0)
+  xTaskCreatePinnedToCore(pushTask, &quot;fbPush&quot;, 8192, NULL, 1, NULL, 0);
+
+  Serial.println(&quot;Setup complete. Monitoring...\n&quot;);
+}
+
+// =====================================================
+//  LOOP
+// =====================================================
+void loop() {
+  uint32_t now = millis();
+
+  serviceGPS();
+
+  if (now - lastUltrasonicMs &gt;= ULTRASONIC_PERIOD) {
+    lastUltrasonicMs = now;
+    float raw = readUltrasonicCM();
+    filteredDistance = filterDistance(raw);
+
+    if (!objectInZone) {
+      if (raw &gt; 0 &amp;&amp; raw &lt;= DETECT_ENTER_CM) {
+        if (++hitCount &gt;= CONFIRM_HITS) {
+          objectInZone = true;
+          cycleStartMs = millis();
+          hitCount = 0;
+        }
+      } else {
+        hitCount = 0;
+      }
+    } else if (filteredDistance &gt; DETECT_RELEASE_CM) {
+      objectInZone = false;
+      hitCount = 0;
+    }
+  }
+
+  if (now - lastWaterMs &gt;= WATER_PERIOD) {
+    lastWaterMs = now;
+    updateWater();
+  }
+
+  updateOutputs();
+  saveLocationIfNeeded();
+  keepWiFiAlive();
+
+  if (now - lastGpsPrintMs &gt;= 2000) {
+    lastGpsPrintMs = now;
+    printGPS();
+  }
+}
+</pre>
     </div>
-  </section>
+    <div class="f2-foot">
+      <button class="f2-copy-btn" id="f2CopyBottom" type="button">Copy code</button>
+    </div>
+  </div>
+  <button class="f2-replay" id="f2ReplayBtn" type="button">↻ Replay intro</button>
+</main>
 
-  <!-- Hidden MP3: the only sound source -->
-  <audio
-    id="myAudio"
-    preload="auto"
-    src="SaveTik.io_7687661810236869909.mp3"
-  ></audio>
+<script>
+(function () {
+  "use strict";
 
-  <!-- ============================================
-       Vanilla JS
-       - Big Play button starts video + MP3 together,
-         resets both, hides button (NO auto fullscreen)
-       - Loop sync via "ended" (no reliance on native loop)
-       - Corner controls: pause/play, mute/unmute, fullscreen (manual)
-       - visibilitychange: pause/resume both after start
-       - Fallback detection
-       ============================================ -->
-  <script>
-    (function () {
-      "use strict";
+  /* ---------- DOM references ---------- */
+  const section   = document.getElementById("f1VideoSection");
+  const video     = document.getElementById("f1MyVideo");
+  const fillVideo = document.getElementById("f1FillVideo");
+  const audio     = document.getElementById("f1MyAudio");
 
-      /* ---------- DOM references ---------- */
-      const section = document.getElementById("fsVideoSection");
-      const video = document.getElementById("myVideo");       // sharp copy
-      const fillVideo = document.getElementById("fillVideo"); // blurred copy
-      const audio = document.getElementById("myAudio");
-      const bigPlayBtn = document.getElementById("bigPlayBtn");
-      const playPauseBtn = document.getElementById("playPauseBtn");
-      const muteBtn = document.getElementById("muteBtn");
-      const fsToggleBtn = document.getElementById("fsToggleBtn");
-      const pauseIcon = document.getElementById("pauseIcon");
-      const playIcon = document.getElementById("playIcon");
-      const mutedIcon = document.getElementById("mutedIcon");
-      const unmutedIcon = document.getElementById("unmutedIcon");
-      const fsEnterIcon = document.getElementById("fsEnterIcon");
-      const fsExitIcon = document.getElementById("fsExitIcon");
+  const bigPlayBtn = document.getElementById("f1BigPlayBtn");
+  const playPauseBtn = document.getElementById("f1PlayPauseBtn");
+  const muteBtn = document.getElementById("f1MuteBtn");
+  const fsToggleBtn = document.getElementById("f1FsToggleBtn");
+  const skipBtn = document.getElementById("f1SkipBtn");
 
-      let hasStarted = false;    // becomes true after first Play press
-      let userPaused = false;    // true when user explicitly paused
+  const codePage = document.getElementById("f2CodePage");
+  const $ = (id) => document.getElementById(id);
 
-      /* ---------- 1. Fallback detection ---------- */
-      video.addEventListener("error", function () {
-        section.classList.add("fallback-active");
-      });
-      audio.addEventListener("error", function () {
-        section.classList.add("fallback-active");
-      });
-      if (video.canPlayType && video.canPlayType("video/mp4") === "") {
-        section.classList.add("fallback-active");
+  let hasStarted = false;   // user has pressed Play
+  let userPaused = false;   // user explicitly paused
+  let finished   = false;   // intro finished / skipped, code page shown
+  let introDone  = false;   // guard: only transition once
+
+  /* =========================================================
+     Transition: FILE 1 -> FILE 2
+     ========================================================= */
+  function goToCodePage() {
+    if (introDone) return;
+    introDone = true;
+    finished = true;
+
+    // stop everything from FILE 1
+    pauseBoth();
+    try { audio.currentTime = 0; } catch (e) {}
+    try { video.currentTime = 0; } catch (e) {}
+    try { fillVideo.currentTime = 0; } catch (e) {}
+
+    // exit fullscreen if active
+    if (isFullscreen()) exitFullscreenSafe();
+
+    // smooth fade out, then hide FILE 1 completely
+    section.classList.add("fade-out");
+    setTimeout(function () {
+      section.classList.add("hidden");
+      section.setAttribute("aria-hidden", "true");
+
+      // show FILE 2 with its own fade-in animation
+      codePage.classList.remove("hidden");
+      codePage.setAttribute("aria-hidden", "false");
+      window.scrollTo(0, 0);
+    }, 600);
+  }
+
+  function replayIntro() {
+    // reset state
+    introDone = false;
+    finished = false;
+    hasStarted = false;
+    userPaused = false;
+
+    // hide FILE 2
+    codePage.classList.add("hidden");
+    codePage.setAttribute("aria-hidden", "true");
+
+    // show FILE 1 again
+    section.classList.remove("hidden");
+    section.setAttribute("aria-hidden", "false");
+    // force reflow so the fade-out class removal animates smoothly
+    void section.offsetWidth;
+    section.classList.remove("fade-out");
+
+    // reset player UI
+    bigPlayBtn.classList.remove("is-hidden");
+    try { video.currentTime = 0; } catch (e) {}
+    try { audio.currentTime = 0; } catch (e) {}
+    try { fillVideo.currentTime = 0; } catch (e) {}
+    updatePlayPauseUI();
+    window.scrollTo(0, 0);
+  }
+
+  /* =========================================================
+     Fallback detection: never get stuck on FILE 1
+     ========================================================= */
+  video.addEventListener("error", function () {
+    section.classList.add("fallback-active");
+    goToCodePage();
+  });
+  audio.addEventListener("error", function () {
+    section.classList.add("fallback-active");
+    goToCodePage();
+  });
+  if (video.canPlayType && video.canPlayType("video/mp4") === "") {
+    section.classList.add("fallback-active");
+    goToCodePage();
+  }
+  $("f1FallbackContinue").addEventListener("click", goToCodePage);
+
+  /* =========================================================
+     Play / pause helpers
+     ========================================================= */
+  function playBoth() {
+    return Promise.all([
+      video.play().catch(function () {}),
+      audio.play().catch(function () {})
+    ]);
+  }
+  function pauseBoth() {
+    video.pause();
+    audio.pause();
+    if (fillVideo && !fillVideo.paused) fillVideo.pause();
+  }
+
+  /* Video ends -> go to code page (NO loop) */
+  video.addEventListener("ended", goToCodePage);
+
+  /* Keep MP3 roughly in sync with the video */
+  video.addEventListener("timeupdate", function () {
+    if (!hasStarted || video.paused) return;
+    if (Math.abs(video.currentTime - audio.currentTime) > 0.35) {
+      try { audio.currentTime = video.currentTime; } catch (e) {}
+    }
+    if (fillVideo && !fillVideo.paused &&
+        Math.abs(fillVideo.currentTime - video.currentTime) > 0.5) {
+      try { fillVideo.currentTime = video.currentTime; } catch (e) {}
+    }
+  });
+
+  /* =========================================================
+     Big play button
+     ========================================================= */
+  bigPlayBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    video.muted = true;
+
+    try { video.currentTime = 0; audio.currentTime = 0; } catch (err) {}
+
+    playBoth();
+
+    if (fillVideo) {
+      try { fillVideo.currentTime = 0; } catch (err) {}
+      const fp = fillVideo.play();
+      if (fp && fp.catch) fp.catch(function () {});
+    }
+
+    bigPlayBtn.classList.add("is-hidden");
+    hasStarted = true;
+    userPaused = false;
+    updatePlayPauseUI();
+    showControlsTemporarily();
+  });
+
+  /* Skip -> straight to code page */
+  skipBtn.addEventListener("click", goToCodePage);
+  $("f2ReplayBtn").addEventListener("click", replayIntro);
+
+  /* =========================================================
+     Fullscreen helpers (manual only)
+     ========================================================= */
+  function requestFullscreenSafe(el) {
+    const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if (typeof fn === "function") {
+      try {
+        const p = fn.call(el);
+        if (p && typeof p.catch === "function") p.catch(function () {});
+      } catch (err) {}
+    }
+  }
+  function exitFullscreenSafe() {
+    const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if (typeof fn === "function") {
+      try {
+        const p = fn.call(document);
+        if (p && typeof p.catch === "function") p.catch(function () {});
+      } catch (err) {}
+    }
+  }
+  function isFullscreen() {
+    return !!(document.fullscreenElement ||
+              document.webkitFullscreenElement ||
+              document.msFullscreenElement);
+  }
+  function updateFsIcon() {
+    const fs = isFullscreen();
+    $("f1FsEnterIcon").classList.toggle("hidden", fs);
+    $("f1FsExitIcon").classList.toggle("hidden", !fs);
+    fsToggleBtn.title = fs ? "Exit fullscreen" : "Fullscreen";
+    fsToggleBtn.setAttribute("aria-label", fs ? "Exit fullscreen" : "Enter fullscreen");
+  }
+  fsToggleBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (isFullscreen()) exitFullscreenSafe();
+    else requestFullscreenSafe(section);
+    showControlsTemporarily();
+  });
+  ["fullscreenchange", "webkitfullscreenchange", "msfullscreenchange"]
+    .forEach(function (evt) { document.addEventListener(evt, updateFsIcon); });
+
+  /* =========================================================
+     Play / Pause UI (corner)
+     ========================================================= */
+  function updatePlayPauseUI() {
+    const p = video.paused;
+    $("f1PauseIcon").classList.toggle("hidden", p);
+    $("f1PlayIcon").classList.toggle("hidden", !p);
+    playPauseBtn.title = p ? "Play" : "Pause";
+    playPauseBtn.setAttribute("aria-label", p ? "Play" : "Pause");
+  }
+  playPauseBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (video.paused) {
+      userPaused = false;
+      try { audio.currentTime = video.currentTime; } catch (err) {}
+      playBoth();
+      if (fillVideo) {
+        const fp = fillVideo.play();
+        if (fp && fp.catch) fp.catch(function () {});
       }
+    } else {
+      userPaused = true;
+      pauseBoth();
+    }
+    updatePlayPauseUI();
+    showControlsTemporarily();
+  });
+  video.addEventListener("play", updatePlayPauseUI);
+  video.addEventListener("pause", updatePlayPauseUI);
 
-      /* ---------- 2. Play / pause helpers ---------- */
-      function playBoth() {
-        return Promise.all([
-          video.play().catch(function () {}),
-          audio.play().catch(function () {})
-        ]);
+  /* =========================================================
+     Mute (controls MP3)
+     ========================================================= */
+  function updateMuteUI() {
+    const m = audio.muted;
+    $("f1MutedIcon").classList.toggle("hidden", !m);
+    $("f1UnmutedIcon").classList.toggle("hidden", m);
+    muteBtn.title = m ? "Unmute" : "Mute";
+    muteBtn.setAttribute("aria-label", m ? "Unmute audio" : "Mute audio");
+  }
+  muteBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    audio.muted = !audio.muted;
+    updateMuteUI();
+    showControlsTemporarily();
+  });
+  audio.addEventListener("volumechange", updateMuteUI);
+
+  /* =========================================================
+     Controls auto-hide
+     ========================================================= */
+  let hideTimer = null;
+  function showControlsTemporarily() {
+    section.classList.add("controls-visible");
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(function () {
+      if (!video.paused) section.classList.remove("controls-visible");
+    }, 3000);
+  }
+  section.addEventListener("mousemove", function () {
+    if (!window.matchMedia("(hover: none)").matches) showControlsTemporarily();
+  });
+  section.addEventListener("touchstart", function () {
+    if (window.matchMedia("(hover: none)").matches) showControlsTemporarily();
+  }, { passive: true });
+
+  /* =========================================================
+     Tab visibility: pause / resume both (only while intro runs)
+     ========================================================= */
+  document.addEventListener("visibilitychange", function () {
+    if (finished) return;
+    if (document.hidden) {
+      if (!video.paused) pauseBoth();
+    } else if (hasStarted && !userPaused) {
+      playBoth();
+      if (fillVideo) {
+        const fp = fillVideo.play();
+        if (fp && fp.catch) fp.catch(function () {});
       }
+    }
+  });
 
-      function pauseBoth() {
-        video.pause();
-        audio.pause();
-        if (fillVideo && !fillVideo.paused) fillVideo.pause();
-      }
+  /* =========================================================
+     Copy buttons (FILE 2)
+     ========================================================= */
+  const codeEl = $("f2Code");
+  const copyBtns = [$("f2CopyTop"), $("f2CopyBottom")];
 
-      /* ---------- 3. Loop sync: restart MP3 with the video ---------- */
-      video.addEventListener("ended", function () {
-        try { video.currentTime = 0; } catch (e) {}
-        try { audio.currentTime = 0; } catch (e) {}
-        if (hasStarted && !userPaused) playBoth();
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+  function flash(ok) {
+    copyBtns.forEach(function (b) {
+      b.textContent = ok ? "Copied ✓" : "Copy failed";
+      b.classList.toggle("done", ok);
+    });
+    setTimeout(function () {
+      copyBtns.forEach(function (b) {
+        b.textContent = "Copy code";
+        b.classList.remove("done");
       });
-
-      video.addEventListener("timeupdate", function () {
-        if (!hasStarted || video.paused) return;
-        const drift = Math.abs(video.currentTime - audio.currentTime);
-        if (drift > 0.35) {
-          try { audio.currentTime = video.currentTime; } catch (e) {}
-        }
-      });
-
-      video.addEventListener("timeupdate", function () {
-        if (!fillVideo || fillVideo.paused) return;
-        const d = Math.abs(fillVideo.currentTime - video.currentTime);
-        if (d > 0.5) {
-          try { fillVideo.currentTime = video.currentTime; } catch (e) {}
-        }
-      });
-
-      /* ---------- 4. BIG PLAY BUTTON ---------- */
-      bigPlayBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-
-        video.muted = true;
-
-        try { video.currentTime = 0; } catch (err) {}
-        try { audio.currentTime = 0; } catch (err) {}
-
-        playBoth();
-
-        if (fillVideo) {
-          try { fillVideo.currentTime = 0; } catch (err) {}
-          const fp = fillVideo.play();
-          if (fp && fp.catch) fp.catch(function () {});
-        }
-
-        bigPlayBtn.classList.add("is-hidden");
-
-        hasStarted = true;
-        userPaused = false;
-        updatePlayPauseUI();
-        showControlsTemporarily();
-      });
-
-      /* ---------- 5. Fullscreen helpers (manual only) ---------- */
-      function requestFullscreenSafe(el) {
-        const fn = el.requestFullscreen
-          || el.webkitRequestFullscreen
-          || el.msRequestFullscreen;
-        if (typeof fn === "function") {
-          try {
-            const p = fn.call(el);
-            if (p && typeof p.catch === "function") p.catch(function () {});
-          } catch (err) {}
-        }
-      }
-
-      function exitFullscreenSafe() {
-        const fn = document.exitFullscreen
-          || document.webkitExitFullscreen
-          || document.msExitFullscreen;
-        if (typeof fn === "function") {
-          try {
-            const p = fn.call(document);
-            if (p && typeof p.catch === "function") p.catch(function () {});
-          } catch (err) {}
-        }
-      }
-
-      function isFullscreen() {
-        return !!(document.fullscreenElement
-          || document.webkitFullscreenElement
-          || document.msFullscreenElement);
-      }
-
-      function updateFsIcon() {
-        if (isFullscreen()) {
-          fsEnterIcon.classList.add("hidden");
-          fsExitIcon.classList.remove("hidden");
-          fsToggleBtn.setAttribute("aria-label", "Exit fullscreen");
-          fsToggleBtn.title = "Exit fullscreen";
-        } else {
-          fsEnterIcon.classList.remove("hidden");
-          fsExitIcon.classList.add("hidden");
-          fsToggleBtn.setAttribute("aria-label", "Enter fullscreen");
-          fsToggleBtn.title = "Fullscreen";
-        }
-      }
-
-      fsToggleBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        if (isFullscreen()) exitFullscreenSafe();
-        else requestFullscreenSafe(section);
-        showControlsTemporarily();
-      });
-
-      ["fullscreenchange", "webkitfullscreenchange", "msfullscreenchange"]
-        .forEach(function (evt) {
-          document.addEventListener(evt, updateFsIcon);
-        });
-
-      /* ---------- 6. Play / Pause UI (corner) ---------- */
-      function updatePlayPauseUI() {
-        if (video.paused) {
-          pauseIcon.classList.add("hidden");
-          playIcon.classList.remove("hidden");
-          playPauseBtn.setAttribute("aria-label", "Play");
-          playPauseBtn.title = "Play";
-        } else {
-          pauseIcon.classList.remove("hidden");
-          playIcon.classList.add("hidden");
-          playPauseBtn.setAttribute("aria-label", "Pause");
-          playPauseBtn.title = "Pause";
-        }
-      }
-
-      playPauseBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        if (video.paused) {
-          userPaused = false;
-          try { audio.currentTime = video.currentTime; } catch (err) {}
-          playBoth();
-          if (fillVideo) {
-            const fp = fillVideo.play();
-            if (fp && fp.catch) fp.catch(function () {});
-          }
-        } else {
-          userPaused = true;
-          pauseBoth();
-        }
-        updatePlayPauseUI();
-        showControlsTemporarily();
-      });
-
-      video.addEventListener("play", updatePlayPauseUI);
-      video.addEventListener("pause", updatePlayPauseUI);
-
-      /* ---------- 7. Mute / Unmute UI (controls MP3) ---------- */
-      function updateMuteUI() {
-        if (audio.muted) {
-          mutedIcon.classList.remove("hidden");
-          unmutedIcon.classList.add("hidden");
-          muteBtn.setAttribute("aria-label", "Unmute audio");
-          muteBtn.title = "Unmute";
-        } else {
-          mutedIcon.classList.add("hidden");
-          unmutedIcon.classList.remove("hidden");
-          muteBtn.setAttribute("aria-label", "Mute audio");
-          muteBtn.title = "Mute";
-        }
-      }
-
-      muteBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        audio.muted = !audio.muted;
-        updateMuteUI();
-        showControlsTemporarily();
-      });
-
-      audio.addEventListener("volumechange", updateMuteUI);
-
-      /* ---------- 8. Controls auto-hide ---------- */
-      let hideTimer = null;
-      function showControlsTemporarily() {
-        section.classList.add("controls-visible");
-        if (hideTimer) clearTimeout(hideTimer);
-        hideTimer = setTimeout(function () {
-          if (!video.paused) section.classList.remove("controls-visible");
-        }, 3000);
-      }
-
-      section.addEventListener("mousemove", function () {
-        if (!window.matchMedia("(hover: none)").matches) {
-          section.classList.add("controls-visible");
-          if (hideTimer) clearTimeout(hideTimer);
-          hideTimer = setTimeout(function () {
-            if (!video.paused) section.classList.remove("controls-visible");
-          }, 3000);
-        }
-      });
-
-      section.addEventListener(
-        "touchstart",
-        function () {
-          if (window.matchMedia("(hover: none)").matches) {
-            section.classList.add("controls-visible");
-            showControlsTemporarily();
-          }
-        },
-        { passive: true }
+    }, 2000);
+  }
+  function copyCode() {
+    const text = codeEl.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { flash(true); },
+        function () { flash(fallbackCopy(text)); }
       );
+    } else {
+      flash(fallbackCopy(text));
+    }
+  }
+  copyBtns.forEach(function (b) { b.addEventListener("click", copyCode); });
 
-      video.addEventListener("click", function () {
-        if (!hasStarted) return;
-        section.classList.toggle("controls-visible");
-        if (section.classList.contains("controls-visible")) showControlsTemporarily();
-      });
+  /* =========================================================
+     Initial UI state
+     ========================================================= */
+  updatePlayPauseUI();
+  updateMuteUI();
+  updateFsIcon();
 
-      /* ---------- 9. Tab visibility: pause / resume both ---------- */
-      document.addEventListener("visibilitychange", function () {
-        if (document.hidden) {
-          if (!video.paused) pauseBoth();
-        } else {
-          if (hasStarted && !userPaused) {
-            playBoth();
-            if (fillVideo) {
-              const fp = fillVideo.play();
-              if (fp && fp.catch) fp.catch(function () {});
-            }
-          }
-        }
-      });
-
-      /* ---------- 10. Initial UI state ---------- */
-      updatePlayPauseUI();
-      updateMuteUI();
-      updateFsIcon();
-    })();
-  </script>
-
+  /* FILE 2 starts hidden — no scripts or animations run until shown */
+  codePage.setAttribute("aria-hidden", "true");
+})();
+</script>
 </body>
 </html>
