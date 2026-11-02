@@ -150,25 +150,6 @@ body {
 .f1-control-btn:hover { background: rgba(39,42,49,.88); transform: scale(1.05); }
 .f1-control-btn svg { width: 1.4rem; height: 1.4rem; fill: currentColor; display: block; pointer-events: none; }
 
-/* Skip button */
-.f1-skip-btn {
-  position: absolute;
-  top: max(1rem, env(safe-area-inset-top));
-  right: 1rem;
-  z-index: 8;
-  border: 1px solid rgba(234,198,118,.4);
-  background: rgba(18,20,25,.55);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #f8f2de;
-  border-radius: 999px;
-  padding: .6rem 1.1rem;
-  font-size: .9rem;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-}
-
 /* F1 fallback */
 .f1-video-fallback {
   display: none;
@@ -281,8 +262,6 @@ body {
     <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
   </video>
   <div class="f1-fs-overlay" aria-hidden="true"></div>
-
-  <button class="f1-skip-btn" id="f1SkipBtn" type="button">Skip ›</button>
 
   <button class="f1-big-play" id="f1BigPlayBtn" type="button" aria-label="Play video with sound" title="Play">
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -784,14 +763,13 @@ void loop() {
   const playPauseBtn = document.getElementById("f1PlayPauseBtn");
   const muteBtn = document.getElementById("f1MuteBtn");
   const fsToggleBtn = document.getElementById("f1FsToggleBtn");
-  const skipBtn = document.getElementById("f1SkipBtn");
 
   const codePage = document.getElementById("f2CodePage");
   const $ = (id) => document.getElementById(id);
 
   let hasStarted = false;   // user has pressed Play
   let userPaused = false;   // user explicitly paused
-  let finished   = false;   // intro finished / skipped, code page shown
+  let finished   = false;   // intro finished, code page shown
   let introDone  = false;   // guard: only transition once
 
   /* =========================================================
@@ -922,8 +900,6 @@ void loop() {
     showControlsTemporarily();
   });
 
-  /* Skip -> straight to code page */
-  skipBtn.addEventListener("click", goToCodePage);
   $("f2ReplayBtn").addEventListener("click", replayIntro);
 
   /* =========================================================
