@@ -3,331 +3,104 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>ESP32 Smart Safety System — Intro & Code</title>
+<title>ESP32 Smart Safety System</title>
 <style>
-/* ============================================================
-   FILE 1 — Fullscreen video intro (prefixed f1-)
-   ============================================================ */
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { overflow-x: hidden; }
-body {
-  background:
-    radial-gradient(1200px 800px at 50% 12%, rgba(212,172,91,.18), transparent 38%),
-    radial-gradient(900px 600px at 50% 100%, rgba(73,116,171,.12), transparent 40%),
-    #070a0d;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  min-height: 100dvh;
-  color: #edf1f5;
-  -webkit-font-smoothing: antialiased;
-}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow-x:hidden}
+body{background:radial-gradient(1200px 800px at 50% 12%,rgba(212,172,91,.18),transparent 38%),radial-gradient(900px 600px at 50% 100%,rgba(73,116,171,.12),transparent 40%),#070a0d;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;min-height:100dvh;color:#edf1f5;-webkit-font-smoothing:antialiased}
+.hidden{display:none!important}
 
-.hidden { display: none !important; }
+/* ===== INTRO VIDEO ===== */
+.fullscreen-video-section{position:relative;width:100vw;height:100dvh;overflow:hidden;background:#000;isolation:isolate;transition:opacity .6s ease}
+.fullscreen-video-section.fade-out{opacity:0}
+.fullscreen-video-section::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;background:linear-gradient(180deg,rgba(5,8,12,.7) 0%,rgba(5,8,12,.08) 18%,rgba(5,8,12,.28) 100%)}
+.fullscreen-video-section video{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;pointer-events:none}
+.fs-fill{object-fit:cover;filter:blur(28px) brightness(.45) saturate(.9);transform:scale(1.1);opacity:0}
+.fs-sharp{object-fit:cover;z-index:1}
+@media (min-width:700px){.fs-fill{opacity:1}.fs-sharp{object-fit:contain}}
+.fs-overlay{position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(120% 80% at 50% 50%,rgba(0,0,0,.1) 0%,rgba(0,0,0,.58) 100%)}
+.big-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:6.75rem;height:6.75rem;border-radius:50%;border:1px solid rgba(234,198,118,.48);background:linear-gradient(145deg,rgba(37,40,47,.9),rgba(12,14,18,.72));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#f8f2de;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:5;box-shadow:0 18px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12);transition:opacity .35s ease,transform .35s ease;-webkit-tap-highlight-color:transparent;touch-action:manipulation;animation:pulse 2.8s ease-out infinite}
+.big-play:active{transform:translate(-50%,-50%) scale(.96)}
+.big-play svg{width:2.9rem;height:2.9rem;fill:currentColor;margin-left:7px;pointer-events:none}
+.big-play.is-hidden{opacity:0;transform:translate(-50%,-50%) scale(.9);pointer-events:none;animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(234,198,118,.26),0 18px 40px rgba(0,0,0,.55)}70%{box-shadow:0 0 0 24px rgba(234,198,118,0),0 18px 40px rgba(0,0,0,.55)}100%{box-shadow:0 0 0 0 rgba(234,198,118,0),0 18px 40px rgba(0,0,0,.55)}}
+.corner-controls{position:absolute;right:1rem;bottom:1rem;display:flex;gap:.6rem;z-index:6;opacity:0;transform:translateY(8px);transition:opacity .25s ease,transform .25s ease;pointer-events:none;background:rgba(18,20,25,.38);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:.45rem .5rem;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.fullscreen-video-section.controls-visible .corner-controls,.fullscreen-video-section:hover .corner-controls{opacity:1;transform:none;pointer-events:auto}
+.control-btn{border:1px solid rgba(255,255,255,.12);background:rgba(22,24,30,.72);border-radius:3rem;width:3rem;height:3rem;display:inline-flex;align-items:center;justify-content:center;color:#f4f7fb;cursor:pointer;padding:0;font-size:0;transition:background .15s,transform .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.control-btn:hover{background:rgba(39,42,49,.88);transform:scale(1.05)}
+.control-btn svg{width:1.4rem;height:1.4rem;fill:currentColor;display:block;pointer-events:none}
+.skip-btn{position:absolute;top:max(1rem,env(safe-area-inset-top));right:1rem;z-index:8;border:1px solid rgba(234,198,118,.4);background:rgba(18,20,25,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#f8f2de;border-radius:999px;padding:.6rem 1.1rem;font-size:.9rem;font-weight:600;cursor:pointer;min-height:44px}
+.video-fallback{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#dfe7f1;background:rgba(18,23,30,.9);padding:1.2rem 1.6rem;border-radius:1rem;text-align:center;width:88%;max-width:380px;z-index:7}
+.fullscreen-video-section.fallback-active video,.fullscreen-video-section.fallback-active .big-play,.fullscreen-video-section.fallback-active .corner-controls{display:none}
+.fullscreen-video-section.fallback-active .video-fallback{display:block}
+@media (max-width:480px){.big-play{width:5.4rem;height:5.4rem}.big-play svg{width:2.3rem;height:2.3rem;margin-left:5px}.control-btn{width:2.75rem;height:2.75rem}.control-btn svg{width:1.25rem;height:1.25rem}}
 
-/* ---------- F1 fullscreen video section ---------- */
-.f1-fullscreen-video-section {
-  position: relative;
-  width: 100vw;
-  height: 100dvh;
-  overflow: hidden;
-  background: #000;
-  isolation: isolate;
-  transition: opacity .6s ease;
-}
-.f1-fullscreen-video-section.fade-out { opacity: 0; }
-.f1-fullscreen-video-section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-  background: linear-gradient(180deg, rgba(5,8,12,.7) 0%, rgba(5,8,12,.08) 18%, rgba(5,8,12,.28) 100%);
-}
-.f1-fullscreen-video-section video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  border: 0;
-  pointer-events: none;
-}
-.f1-fs-fill {
-  object-fit: cover;
-  filter: blur(28px) brightness(.45) saturate(.9);
-  transform: scale(1.1);
-  opacity: 0;
-}
-.f1-fs-sharp { object-fit: cover; z-index: 1; }
-@media (min-width: 700px) {
-  .f1-fs-fill { opacity: 1; }
-  .f1-fs-sharp { object-fit: contain; }
-}
-.f1-fs-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,.1) 0%, rgba(0,0,0,.58) 100%);
-}
-
-/* Big play button */
-.f1-big-play {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 6.75rem;
-  height: 6.75rem;
-  border-radius: 50%;
-  border: 1px solid rgba(234,198,118,.48);
-  background: linear-gradient(145deg, rgba(37,40,47,.9), rgba(12,14,18,.72));
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: #f8f2de;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  z-index: 5;
-  box-shadow: 0 18px 40px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.12);
-  transition: opacity .35s ease, transform .35s ease;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  animation: f1-pulse 2.8s ease-out infinite;
-}
-.f1-big-play:active { transform: translate(-50%, -50%) scale(.96); }
-.f1-big-play svg { width: 2.9rem; height: 2.9rem; fill: currentColor; margin-left: 7px; pointer-events: none; }
-.f1-big-play.is-hidden { opacity: 0; transform: translate(-50%, -50%) scale(.9); pointer-events: none; animation: none; }
-@keyframes f1-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(234,198,118,.26), 0 18px 40px rgba(0,0,0,.55); }
-  70%  { box-shadow: 0 0 0 24px rgba(234,198,118,0), 0 18px 40px rgba(0,0,0,.55); }
-  100% { box-shadow: 0 0 0 0 rgba(234,198,118,0), 0 18px 40px rgba(0,0,0,.55); }
-}
-
-/* Corner controls */
-.f1-corner-controls {
-  position: absolute;
-  right: 1rem;
-  bottom: 1rem;
-  display: flex;
-  gap: .6rem;
-  z-index: 6;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity .25s ease, transform .25s ease;
-  pointer-events: none;
-  background: rgba(18,20,25,.38);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 999px;
-  padding: .45rem .5rem;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-.f1-fullscreen-video-section.controls-visible .f1-corner-controls,
-.f1-fullscreen-video-section:hover .f1-corner-controls {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-.f1-control-btn {
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(22,24,30,.72);
-  border-radius: 3rem;
-  width: 3rem;
-  height: 3rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #f4f7fb;
-  cursor: pointer;
-  padding: 0;
-  font-size: 0;
-  transition: background .15s, transform .15s;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.f1-control-btn:hover { background: rgba(39,42,49,.88); transform: scale(1.05); }
-.f1-control-btn svg { width: 1.4rem; height: 1.4rem; fill: currentColor; display: block; pointer-events: none; }
-
-/* F1 fallback */
-.f1-video-fallback {
-  display: none;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #dfe7f1;
-  background: rgba(18,23,30,.9);
-  padding: 1.2rem 1.6rem;
-  border-radius: 1rem;
-  text-align: center;
-  width: 88%;
-  max-width: 380px;
-  z-index: 7;
-}
-.f1-fullscreen-video-section.fallback-active video,
-.f1-fullscreen-video-section.fallback-active .f1-big-play,
-.f1-fullscreen-video-section.fallback-active .f1-corner-controls {
-  display: none;
-}
-.f1-fullscreen-video-section.fallback-active .f1-video-fallback { display: block; }
-
-@media (max-width: 480px) {
-  .f1-big-play { width: 5.4rem; height: 5.4rem; }
-  .f1-big-play svg { width: 2.3rem; height: 2.3rem; margin-left: 5px; }
-  .f1-control-btn { width: 2.75rem; height: 2.75rem; }
-  .f1-control-btn svg { width: 1.25rem; height: 1.25rem; }
-}
-
-/* ============================================================
-   FILE 2 — Code page (prefixed f2-)
-   ============================================================ */
-.f2-code-page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: max(20px, env(safe-area-inset-top)) 16px 40px;
-  animation: f2-fadeIn .7s ease;
-}
-@keyframes f2-fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.f2-code-page h1 { font-size: 1.4rem; margin-bottom: 4px; color: #f8f2de; }
-.f2-code-page p.f2-sub { margin-bottom: 16px; color: #98a2b3; font-size: .95rem; }
-.f2-card {
-  background: rgba(18,24,38,.85);
-  border: 1px solid rgba(234,198,118,.22);
-  border-radius: 14px;
-  overflow: hidden;
-}
-.f2-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  flex-wrap: wrap;
-}
-.f2-file {
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: .85rem;
-  color: #98a2b3;
-}
-.f2-copy-btn {
-  cursor: pointer;
-  border: 0;
-  border-radius: 10px;
-  padding: 10px 18px;
-  font-size: .95rem;
-  font-weight: 700;
-  background: linear-gradient(145deg, #e6c36f, #c79a3b);
-  color: #1a1405;
-  min-height: 44px;
-}
-.f2-copy-btn.done { background: #4ade80; }
-.f2-codebox { background: #070b12; max-height: 70vh; overflow: auto; }
-.f2-codebox pre {
-  margin: 0;
-  padding: 16px;
-  color: #e2e8f0;
-  font: 13px/1.55 ui-monospace, Menlo, Consolas, "Courier New", monospace;
-  tab-size: 2;
-}
-.f2-foot { display: flex; justify-content: center; padding: 14px; }
-.f2-replay {
-  display: block;
-  margin: 18px auto 0;
-  background: none;
-  border: 0;
-  color: #98a2b3;
-  text-decoration: underline;
-  cursor: pointer;
-  font-size: .9rem;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .f1-big-play, .f2-code-page { animation: none !important; }
-}
+/* ===== CODE PAGE ===== */
+#codePage{max-width:960px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px 40px;animation:fadeIn .7s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#codePage h1{font-size:1.4rem;margin-bottom:4px;color:#f8f2de}
+#codePage p.sub{margin-bottom:16px;color:#98a2b3;font-size:.95rem}
+.card{background:rgba(18,24,38,.85);border:1px solid rgba(234,198,118,.22);border-radius:14px;overflow:hidden}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+.file{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem;color:#98a2b3}
+.copy-btn{cursor:pointer;border:0;border-radius:10px;padding:10px 18px;font-size:.95rem;font-weight:700;background:linear-gradient(145deg,#e6c36f,#c79a3b);color:#1a1405;min-height:44px}
+.copy-btn.done{background:#4ade80}
+.codebox{background:#070b12;max-height:70vh;overflow:auto}
+pre{margin:0;padding:16px;color:#e2e8f0;font:13px/1.55 ui-monospace,Menlo,Consolas,"Courier New",monospace;tab-size:2}
+.foot{display:flex;justify-content:center;padding:14px}
+.replay{display:block;margin:18px auto 0;background:none;border:0;color:#98a2b3;text-decoration:underline;cursor:pointer;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){.big-play,#codePage{animation:none!important}}
 </style>
 </head>
 <body>
 
-<!-- ============================================================
-     FILE 1 — Fullscreen video intro
-     ============================================================ -->
-<section class="f1-fullscreen-video-section" id="f1VideoSection" aria-label="Intro video">
-  <video class="f1-fs-fill" id="f1FillVideo" muted playsinline preload="auto">
-    <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
-  </video>
-  <video id="f1MyVideo" class="f1-fs-sharp" muted playsinline preload="auto">
-    <source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" />
-  </video>
-  <div class="f1-fs-overlay" aria-hidden="true"></div>
+<section class="fullscreen-video-section" id="fsVideoSection" aria-label="Intro video">
+  <video class="fs-fill" id="fillVideo" muted playsinline preload="auto"><source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" /></video>
+  <video id="myVideo" class="fs-sharp" muted playsinline preload="auto"><source src="ssstik.io_%40grimzessae_1791710228291.mp4" type="video/mp4" /></video>
+  <div class="fs-overlay" aria-hidden="true"></div>
 
-  <button class="f1-big-play" id="f1BigPlayBtn" type="button" aria-label="Play video with sound" title="Play">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
-    </svg>
+  <button class="skip-btn" id="skipBtn" type="button">Skip ›</button>
+
+  <button class="big-play" id="bigPlayBtn" type="button" aria-label="Play video with sound" title="Play">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path></svg>
   </button>
 
-  <div class="f1-corner-controls" id="f1CornerControls">
-    <button class="f1-control-btn" id="f1PlayPauseBtn" type="button" aria-label="Pause" title="Pause">
-      <svg id="f1PauseIcon" viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="6" y="4" width="4" height="16" rx="1"></rect>
-        <rect x="14" y="4" width="4" height="16" rx="1"></rect>
-      </svg>
-      <svg id="f1PlayIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path>
-      </svg>
+  <div class="corner-controls" id="cornerControls">
+    <button class="control-btn" id="playPauseBtn" type="button" aria-label="Pause" title="Pause">
+      <svg id="pauseIcon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>
+      <svg id="playIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"></path></svg>
     </button>
-    <button class="f1-control-btn" id="f1MuteBtn" type="button" aria-label="Mute audio" title="Mute">
-      <svg id="f1MutedIcon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
-        <line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-        <line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-      </svg>
-      <svg id="f1UnmutedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 10v4h4l5 5V5L7 10H3z"></path>
-        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path>
-        <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
-      </svg>
+    <button class="control-btn" id="muteBtn" type="button" aria-label="Mute audio" title="Mute">
+      <svg id="mutedIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l5 5V5L7 10H3z"></path><line x1="17" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line><line x1="21" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line></svg>
+      <svg id="unmutedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l5 5V5L7 10H3z"></path><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>
     </button>
-    <button class="f1-control-btn" id="f1FsToggleBtn" type="button" aria-label="Enter fullscreen" title="Fullscreen">
-      <svg id="f1FsEnterIcon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"></path>
-      </svg>
-      <svg id="f1FsExitIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M10 4v4H6v2h6V4h-2zm4 0h-2v6h6V8h-4V4zM4 14v2h4v4h2v-6H4zm10 0v6h2v-4h4v-2h-6z"></path>
-      </svg>
+    <button class="control-btn" id="fsToggleBtn" type="button" aria-label="Enter fullscreen" title="Fullscreen">
+      <svg id="fsEnterIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"></path></svg>
+      <svg id="fsExitIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4v4H6v2h6V4h-2zm4 0h-2v6h6V8h-4V4zM4 14v2h4v4h2v-6H4zm10 0v6h2v-4h4v-2h-6z"></path></svg>
     </button>
   </div>
 
-  <div class="f1-video-fallback" id="f1FallbackMsg">
+  <div class="video-fallback" id="fallbackMsg">
     ⚠️ Your browser cannot play this video or audio.<br /><br />
-    <button class="f2-copy-btn" id="f1FallbackContinue" type="button">Continue to code</button>
+    <button class="copy-btn" id="fallbackContinue" type="button">Continue to code</button>
   </div>
 </section>
 
-<!-- F1 hidden audio -->
-<audio id="f1MyAudio" preload="auto" src="SaveTik.io_7687661810236869909.mp3"></audio>
+<audio id="myAudio" preload="auto" src="SaveTik.io_7687661810236869909.mp3"></audio>
 
-<!-- ============================================================
-     FILE 2 — Code page (hidden initially)
-     ============================================================ -->
-<main id="f2CodePage" class="f2-code-page hidden">
-  <h1>ESP32 Smart Safety System – v7</h1>
-  <p class="f2-sub">Copy button chap dile pura code copy hoye jabe (419 lines).</p>
-  <div class="f2-card">
-    <div class="f2-bar">
-      <span class="f2-file">esp32_smart_safety.txt</span>
-      <button class="f2-copy-btn" id="f2CopyTop" type="button">Copy code</button>
-    </div>
-    <div class="f2-codebox">
-<pre id="f2Code">/*
- * ESP32 Smart Safety System — FINAL v7 (Firebase)
+<!-- ===== CODE PAGE (shown after intro video) ===== -->
+<main id="codePage" class="hidden">
+  <h1>ESP32 Smart Safety System – v8</h1>
+  <p class="sub">Copy button chap dile pura code copy hoye jabe (397 lines).</p>
+  <div class="card">
+    <div class="bar"><span class="file">esp32_smart_safety_v8.txt</span><button class="copy-btn" id="copyTop" type="button">Copy code</button></div>
+    <div class="codebox"><pre id="code">/*
+ * ESP32 Smart Safety System — FINAL v8 (Firebase, fast boot)
  * - Buzzer : ultrasonic -&gt; distance-based beep, water -&gt; 2 Hz blink
  * - Motor  : CONTINUOUS ON while object in zone OR water detected
  * - Water  : auto-calibrates dry baseline at boot (wet = value DROPS)
- * - GPS    : auto-baud, last known location saved to flash
+ * - GPS    : fixed baud (no boot delay), last known location saved to flash
+ * - WiFi   : NON-BLOCKING. Net thakuk ba na thakuk, boot-e sob sensor sathe sathe kaj kore.
  * - Firebase: location pushed every 5 s from a SEPARATE task (core 0),
  *             so buzzer / motor / ultrasonic timing is never blocked.
  */
@@ -358,6 +131,7 @@ const uint32_t PUSH_PERIOD_MS = 5000;
 #define GPS_TX_PIN      17
 
 // ---------------- SETTINGS ----------------
+#define GPS_BAUD             9600    // NEO-6M / NEO-M8N default. Onno hole ekhane change koro
 #define ENABLE_WATER_ALERT   true
 #define WATER_WET_IS_HIGHER  false   // tomar sensor-e panite value kome
 
@@ -405,29 +179,31 @@ double   savedLat = 0, savedLng = 0;
 uint32_t lastSaveMs = 0, lastGpsPrintMs = 0, lastWifiTry = 0;
 
 // =====================================================
-//  WiFi
+//  WiFi (NON-BLOCKING)
 // =====================================================
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.printf(&quot;[WIFI] Connecting to %s&quot;, WIFI_SSID);
-  uint32_t t = millis();
-  while (WiFi.status() != WL_CONNECTED &amp;&amp; millis() - t &lt; 15000) {
-    delay(300);
-    Serial.print(&quot;.&quot;);
-  }
-  Serial.println();
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.print(&quot;[WIFI] Connected. IP: &quot;);
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println(&quot;[WIFI] Failed, retrying in background&quot;);
-  }
+  lastWifiTry = millis();
+  Serial.println(&quot;[WIFI] Connecting in background...&quot;);
 }
 
 void keepWiFiAlive() {
-  if (WiFi.status() == WL_CONNECTED) return;
+  static bool wasConnected = false;
+  bool connected = (WiFi.status() == WL_CONNECTED);
+
+  if (connected != wasConnected) {
+    wasConnected = connected;
+    if (connected) {
+      Serial.print(&quot;[WIFI] Connected. IP: &quot;);
+      Serial.println(WiFi.localIP());
+    } else {
+      Serial.println(&quot;[WIFI] Disconnected&quot;);
+    }
+  }
+
+  if (connected) return;
   if (millis() - lastWifiTry &lt; 10000) return;
   lastWifiTry = millis();
   Serial.println(&quot;[WIFI] Reconnecting...&quot;);
@@ -468,36 +244,6 @@ void pushTask(void* arg) {
 // =====================================================
 //  GPS
 // =====================================================
-bool listenForNMEA(uint32_t baud, uint32_t ms) {
-  gpsSerial.end();
-  gpsSerial.begin(baud, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
-  uint32_t t = millis();
-  int dollars = 0;
-  while (millis() - t &lt; ms) {
-    while (gpsSerial.available()) {
-      if (gpsSerial.read() == '$') dollars++;
-    }
-    if (dollars &gt;= 2) return true;
-    delay(5);
-  }
-  return false;
-}
-
-void detectGpsBaud() {
-  const uint32_t bauds[] = { 9600, 38400, 115200, 4800 };
-  for (uint8_t i = 0; i &lt; 4; i++) {
-    Serial.printf(&quot;[GPS] Trying %lu baud... &quot;, (unsigned long)bauds[i]);
-    if (listenForNMEA(bauds[i], 1500)) {
-      Serial.println(&quot;DATA OK&quot;);
-      return;
-    }
-    Serial.println(&quot;no data&quot;);
-  }
-  Serial.println(&quot;[GPS] No data. Check wiring (GPS TX -&gt; GPIO16, VCC, GND)&quot;);
-  gpsSerial.end();
-  gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
-}
-
 void serviceGPS() {
   while (gpsSerial.available() &gt; 0) {
     gps.encode(gpsSerial.read());
@@ -536,6 +282,8 @@ void printGPS() {
   } else {
     Serial.printf(&quot;Fix: NO FIX  Sat: %lu  Chars: %lu\n&quot;,
                   (unsigned long)gpsSats, (unsigned long)gps.charsProcessed());
+    if (gps.charsProcessed() &lt; 10 &amp;&amp; millis() &gt; 10000)
+      Serial.println(&quot;[GPS] No data. Check wiring (GPS TX -&gt; GPIO16, VCC, GND) / GPS_BAUD&quot;);
     if (hasLast) Serial.printf(&quot;Last known: %.6f, %.6f\n&quot;, (double)lastLat, (double)lastLng);
   }
   Serial.printf(&quot;WiFi: %s\n&quot;, WiFi.status() == WL_CONNECTED ? &quot;connected&quot; : &quot;disconnected&quot;);
@@ -687,9 +435,11 @@ void setup() {
     Serial.printf(&quot;[GPS] Loaded last known: %.6f, %.6f\n&quot;, savedLat, savedLng);
   }
 
-  detectGpsBaud();
-  calibrateWater();
-  connectWiFi();
+  // GPS: fixed baud, kono auto-detect delay nai
+  gpsSerial.begin(GPS_BAUD, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+
+  connectWiFi();      // non-blocking, sathe sathe return
+  calibrateWater();   // ~1.5 sec (sensor DRY rakho)
 
   // Firebase push alada task-e (core 0)
   xTaskCreatePinnedToCore(pushTask, &quot;fbPush&quot;, 8192, NULL, 1, NULL, 0);
@@ -740,217 +490,132 @@ void loop() {
     printGPS();
   }
 }
-</pre>
-    </div>
-    <div class="f2-foot">
-      <button class="f2-copy-btn" id="f2CopyBottom" type="button">Copy code</button>
-    </div>
+</pre></div>
+    <div class="foot"><button class="copy-btn" id="copyBottom" type="button">Copy code</button></div>
   </div>
-  <button class="f2-replay" id="f2ReplayBtn" type="button">↻ Replay intro</button>
+  <button class="replay" id="replayBtn" type="button">↻ Replay intro</button>
 </main>
 
 <script>
 (function () {
   "use strict";
-
-  /* ---------- DOM references ---------- */
-  const section   = document.getElementById("f1VideoSection");
-  const video     = document.getElementById("f1MyVideo");
-  const fillVideo = document.getElementById("f1FillVideo");
-  const audio     = document.getElementById("f1MyAudio");
-
-  const bigPlayBtn = document.getElementById("f1BigPlayBtn");
-  const playPauseBtn = document.getElementById("f1PlayPauseBtn");
-  const muteBtn = document.getElementById("f1MuteBtn");
-  const fsToggleBtn = document.getElementById("f1FsToggleBtn");
-
-  const codePage = document.getElementById("f2CodePage");
+  const section = document.getElementById("fsVideoSection");
+  const video = document.getElementById("myVideo");
+  const fillVideo = document.getElementById("fillVideo");
+  const audio = document.getElementById("myAudio");
+  const bigPlayBtn = document.getElementById("bigPlayBtn");
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  const muteBtn = document.getElementById("muteBtn");
+  const fsToggleBtn = document.getElementById("fsToggleBtn");
+  const skipBtn = document.getElementById("skipBtn");
+  const codePage = document.getElementById("codePage");
   const $ = (id) => document.getElementById(id);
 
-  let hasStarted = false;   // user has pressed Play
-  let userPaused = false;   // user explicitly paused
-  let finished   = false;   // intro finished, code page shown
-  let introDone  = false;   // guard: only transition once
+  let hasStarted = false, userPaused = false, finished = false;
 
-  /* =========================================================
-     Transition: FILE 1 -> FILE 2
-     ========================================================= */
-  function goToCodePage() {
-    if (introDone) return;
-    introDone = true;
+  /* ---------- Show code page (after video ends / skip / error) ---------- */
+  function showCodePage() {
+    if (finished) return;
     finished = true;
-
-    // stop everything from FILE 1
     pauseBoth();
     try { audio.currentTime = 0; } catch (e) {}
-    try { video.currentTime = 0; } catch (e) {}
-    try { fillVideo.currentTime = 0; } catch (e) {}
-
-    // exit fullscreen if active
     if (isFullscreen()) exitFullscreenSafe();
-
-    // smooth fade out, then hide FILE 1 completely
     section.classList.add("fade-out");
     setTimeout(function () {
       section.classList.add("hidden");
-      section.setAttribute("aria-hidden", "true");
-
-      // show FILE 2 with its own fade-in animation
       codePage.classList.remove("hidden");
-      codePage.setAttribute("aria-hidden", "false");
       window.scrollTo(0, 0);
     }, 600);
   }
 
   function replayIntro() {
-    // reset state
-    introDone = false;
-    finished = false;
-    hasStarted = false;
-    userPaused = false;
-
-    // hide FILE 2
+    finished = false; hasStarted = false; userPaused = false;
     codePage.classList.add("hidden");
-    codePage.setAttribute("aria-hidden", "true");
-
-    // show FILE 1 again
     section.classList.remove("hidden");
-    section.setAttribute("aria-hidden", "false");
-    // force reflow so the fade-out class removal animates smoothly
-    void section.offsetWidth;
-    section.classList.remove("fade-out");
-
-    // reset player UI
+    requestAnimationFrame(function () { section.classList.remove("fade-out"); });
     bigPlayBtn.classList.remove("is-hidden");
-    try { video.currentTime = 0; } catch (e) {}
-    try { audio.currentTime = 0; } catch (e) {}
-    try { fillVideo.currentTime = 0; } catch (e) {}
+    try { video.currentTime = 0; audio.currentTime = 0; } catch (e) {}
     updatePlayPauseUI();
-    window.scrollTo(0, 0);
   }
 
-  /* =========================================================
-     Fallback detection: never get stuck on FILE 1
-     ========================================================= */
-  video.addEventListener("error", function () {
-    section.classList.add("fallback-active");
-    goToCodePage();
-  });
-  audio.addEventListener("error", function () {
-    section.classList.add("fallback-active");
-    goToCodePage();
-  });
-  if (video.canPlayType && video.canPlayType("video/mp4") === "") {
-    section.classList.add("fallback-active");
-    goToCodePage();
-  }
-  $("f1FallbackContinue").addEventListener("click", goToCodePage);
+  /* ---------- Fallback ---------- */
+  video.addEventListener("error", function () { section.classList.add("fallback-active"); });
+  audio.addEventListener("error", function () { section.classList.add("fallback-active"); });
+  if (video.canPlayType && video.canPlayType("video/mp4") === "") section.classList.add("fallback-active");
+  $("fallbackContinue").addEventListener("click", showCodePage);
 
-  /* =========================================================
-     Play / pause helpers
-     ========================================================= */
+  /* ---------- Play / pause ---------- */
   function playBoth() {
-    return Promise.all([
-      video.play().catch(function () {}),
-      audio.play().catch(function () {})
-    ]);
+    return Promise.all([video.play().catch(function () {}), audio.play().catch(function () {})]);
   }
   function pauseBoth() {
-    video.pause();
-    audio.pause();
+    video.pause(); audio.pause();
     if (fillVideo && !fillVideo.paused) fillVideo.pause();
   }
 
-  /* Video ends -> go to code page (NO loop) */
-  video.addEventListener("ended", goToCodePage);
+  /* Video ends -> open code page (no loop) */
+  video.addEventListener("ended", showCodePage);
 
-  /* Keep MP3 roughly in sync with the video */
   video.addEventListener("timeupdate", function () {
     if (!hasStarted || video.paused) return;
     if (Math.abs(video.currentTime - audio.currentTime) > 0.35) {
       try { audio.currentTime = video.currentTime; } catch (e) {}
     }
-    if (fillVideo && !fillVideo.paused &&
-        Math.abs(fillVideo.currentTime - video.currentTime) > 0.5) {
+    if (fillVideo && !fillVideo.paused && Math.abs(fillVideo.currentTime - video.currentTime) > 0.5) {
       try { fillVideo.currentTime = video.currentTime; } catch (e) {}
     }
   });
 
-  /* =========================================================
-     Big play button
-     ========================================================= */
   bigPlayBtn.addEventListener("click", function (e) {
     e.stopPropagation();
     video.muted = true;
-
     try { video.currentTime = 0; audio.currentTime = 0; } catch (err) {}
-
     playBoth();
-
     if (fillVideo) {
       try { fillVideo.currentTime = 0; } catch (err) {}
-      const fp = fillVideo.play();
-      if (fp && fp.catch) fp.catch(function () {});
+      const fp = fillVideo.play(); if (fp && fp.catch) fp.catch(function () {});
     }
-
     bigPlayBtn.classList.add("is-hidden");
-    hasStarted = true;
-    userPaused = false;
-    updatePlayPauseUI();
-    showControlsTemporarily();
+    hasStarted = true; userPaused = false;
+    updatePlayPauseUI(); showControlsTemporarily();
   });
 
-  $("f2ReplayBtn").addEventListener("click", replayIntro);
+  skipBtn.addEventListener("click", showCodePage);
+  $("replayBtn").addEventListener("click", replayIntro);
 
-  /* =========================================================
-     Fullscreen helpers (manual only)
-     ========================================================= */
+  /* ---------- Fullscreen ---------- */
   function requestFullscreenSafe(el) {
     const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-    if (typeof fn === "function") {
-      try {
-        const p = fn.call(el);
-        if (p && typeof p.catch === "function") p.catch(function () {});
-      } catch (err) {}
-    }
+    if (typeof fn === "function") { try { const p = fn.call(el); if (p && p.catch) p.catch(function () {}); } catch (err) {} }
   }
   function exitFullscreenSafe() {
     const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
-    if (typeof fn === "function") {
-      try {
-        const p = fn.call(document);
-        if (p && typeof p.catch === "function") p.catch(function () {});
-      } catch (err) {}
-    }
+    if (typeof fn === "function") { try { const p = fn.call(document); if (p && p.catch) p.catch(function () {}); } catch (err) {} }
   }
   function isFullscreen() {
-    return !!(document.fullscreenElement ||
-              document.webkitFullscreenElement ||
-              document.msFullscreenElement);
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
   }
   function updateFsIcon() {
     const fs = isFullscreen();
-    $("f1FsEnterIcon").classList.toggle("hidden", fs);
-    $("f1FsExitIcon").classList.toggle("hidden", !fs);
+    $("fsEnterIcon").classList.toggle("hidden", fs);
+    $("fsExitIcon").classList.toggle("hidden", !fs);
     fsToggleBtn.title = fs ? "Exit fullscreen" : "Fullscreen";
     fsToggleBtn.setAttribute("aria-label", fs ? "Exit fullscreen" : "Enter fullscreen");
   }
   fsToggleBtn.addEventListener("click", function (e) {
     e.stopPropagation();
-    if (isFullscreen()) exitFullscreenSafe();
-    else requestFullscreenSafe(section);
+    if (isFullscreen()) exitFullscreenSafe(); else requestFullscreenSafe(section);
     showControlsTemporarily();
   });
-  ["fullscreenchange", "webkitfullscreenchange", "msfullscreenchange"]
-    .forEach(function (evt) { document.addEventListener(evt, updateFsIcon); });
+  ["fullscreenchange", "webkitfullscreenchange", "msfullscreenchange"].forEach(function (evt) {
+    document.addEventListener(evt, updateFsIcon);
+  });
 
-  /* =========================================================
-     Play / Pause UI (corner)
-     ========================================================= */
+  /* ---------- Play/Pause UI ---------- */
   function updatePlayPauseUI() {
     const p = video.paused;
-    $("f1PauseIcon").classList.toggle("hidden", p);
-    $("f1PlayIcon").classList.toggle("hidden", !p);
+    $("pauseIcon").classList.toggle("hidden", p);
+    $("playIcon").classList.toggle("hidden", !p);
     playPauseBtn.title = p ? "Play" : "Pause";
     playPauseBtn.setAttribute("aria-label", p ? "Play" : "Pause");
   }
@@ -960,41 +625,27 @@ void loop() {
       userPaused = false;
       try { audio.currentTime = video.currentTime; } catch (err) {}
       playBoth();
-      if (fillVideo) {
-        const fp = fillVideo.play();
-        if (fp && fp.catch) fp.catch(function () {});
-      }
-    } else {
-      userPaused = true;
-      pauseBoth();
-    }
-    updatePlayPauseUI();
-    showControlsTemporarily();
+      if (fillVideo) { const fp = fillVideo.play(); if (fp && fp.catch) fp.catch(function () {}); }
+    } else { userPaused = true; pauseBoth(); }
+    updatePlayPauseUI(); showControlsTemporarily();
   });
   video.addEventListener("play", updatePlayPauseUI);
   video.addEventListener("pause", updatePlayPauseUI);
 
-  /* =========================================================
-     Mute (controls MP3)
-     ========================================================= */
+  /* ---------- Mute (controls MP3) ---------- */
   function updateMuteUI() {
     const m = audio.muted;
-    $("f1MutedIcon").classList.toggle("hidden", !m);
-    $("f1UnmutedIcon").classList.toggle("hidden", m);
+    $("mutedIcon").classList.toggle("hidden", !m);
+    $("unmutedIcon").classList.toggle("hidden", m);
     muteBtn.title = m ? "Unmute" : "Mute";
     muteBtn.setAttribute("aria-label", m ? "Unmute audio" : "Mute audio");
   }
   muteBtn.addEventListener("click", function (e) {
-    e.stopPropagation();
-    audio.muted = !audio.muted;
-    updateMuteUI();
-    showControlsTemporarily();
+    e.stopPropagation(); audio.muted = !audio.muted; updateMuteUI(); showControlsTemporarily();
   });
   audio.addEventListener("volumechange", updateMuteUI);
 
-  /* =========================================================
-     Controls auto-hide
-     ========================================================= */
+  /* ---------- Controls auto-hide ---------- */
   let hideTimer = null;
   function showControlsTemporarily() {
     section.classList.add("controls-visible");
@@ -1010,74 +661,41 @@ void loop() {
     if (window.matchMedia("(hover: none)").matches) showControlsTemporarily();
   }, { passive: true });
 
-  /* =========================================================
-     Tab visibility: pause / resume both (only while intro runs)
-     ========================================================= */
+  /* ---------- Tab visibility ---------- */
   document.addEventListener("visibilitychange", function () {
     if (finished) return;
-    if (document.hidden) {
-      if (!video.paused) pauseBoth();
-    } else if (hasStarted && !userPaused) {
+    if (document.hidden) { if (!video.paused) pauseBoth(); }
+    else if (hasStarted && !userPaused) {
       playBoth();
-      if (fillVideo) {
-        const fp = fillVideo.play();
-        if (fp && fp.catch) fp.catch(function () {});
-      }
+      if (fillVideo) { const fp = fillVideo.play(); if (fp && fp.catch) fp.catch(function () {}); }
     }
   });
 
-  /* =========================================================
-     Copy buttons (FILE 2)
-     ========================================================= */
-  const codeEl = $("f2Code");
-  const copyBtns = [$("f2CopyTop"), $("f2CopyBottom")];
-
+  /* ---------- Copy buttons ---------- */
+  const codeEl = $("code");
+  const copyBtns = [$("copyTop"), $("copyBottom")];
   function fallbackCopy(text) {
     const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    let ok = false;
-    try { ok = document.execCommand("copy"); } catch (e) {}
-    document.body.removeChild(ta);
-    return ok;
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta); return ok;
   }
   function flash(ok) {
-    copyBtns.forEach(function (b) {
-      b.textContent = ok ? "Copied ✓" : "Copy failed";
-      b.classList.toggle("done", ok);
-    });
+    copyBtns.forEach(function (b) { b.textContent = ok ? "Copied ✓" : "Copy failed"; b.classList.toggle("done", ok); });
     setTimeout(function () {
-      copyBtns.forEach(function (b) {
-        b.textContent = "Copy code";
-        b.classList.remove("done");
-      });
+      copyBtns.forEach(function (b) { b.textContent = "Copy code"; b.classList.remove("done"); });
     }, 2000);
   }
   function copyCode() {
     const text = codeEl.textContent;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(
-        function () { flash(true); },
-        function () { flash(fallbackCopy(text)); }
-      );
-    } else {
-      flash(fallbackCopy(text));
-    }
+      navigator.clipboard.writeText(text).then(function () { flash(true); }, function () { flash(fallbackCopy(text)); });
+    } else { flash(fallbackCopy(text)); }
   }
   copyBtns.forEach(function (b) { b.addEventListener("click", copyCode); });
 
-  /* =========================================================
-     Initial UI state
-     ========================================================= */
-  updatePlayPauseUI();
-  updateMuteUI();
-  updateFsIcon();
-
-  /* FILE 2 starts hidden — no scripts or animations run until shown */
-  codePage.setAttribute("aria-hidden", "true");
+  updatePlayPauseUI(); updateMuteUI(); updateFsIcon();
 })();
 </script>
 </body>
